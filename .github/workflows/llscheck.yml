@@ -1,0 +1,35 @@
+name: LLSCheck
+
+on: [push, pull_request]
+
+jobs:
+  llscheck:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: "**/requirements.txt"
+
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+
+      - name: Install Lua Language Server
+        run: brew install lua-language-server
+
+      - name: Setup Lua
+        run: |-
+          pip install -r .github/workflows/requirements.txt
+          hererocks env --lua 5.1 --luarocks latest
+
+      - name: Install dependencies
+        run: env/bin/luarocks install llscheck
+
+      - name: Run llscheck
+        run: env/bin/llscheck src
