@@ -10,3 +10,5 @@ include_files = {
 files["spec/**/*.lua"] = {
    std = "+busted",
 }
+
+ignore = { "212/self" } -- unused argument self

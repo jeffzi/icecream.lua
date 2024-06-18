@@ -1,3 +1,6 @@
+---@class IceCream
+local IceCream = {}
+
 local format = string.format
 local getinfo = debug.getinfo
 local gsub = string.gsub
@@ -7,6 +10,13 @@ local sub = string.sub
 local tconcat = table.concat
 local tinsert = table.insert
 local traceback = debug.traceback
+
+stderr:setvbuf("no")
+
+-------------------------------------------------------------------------------
+-- Parse source
+-------------------------------------------------------------------------------
+-- region Parse source
 
 ---@type {[string]: {[integer]: string}}
 local cache = {}
@@ -108,10 +118,17 @@ local function parse_args(source)
    return arg_count > 0 and args or nil, arg_count
 end
 
+-- endregion
+
+-------------------------------------------------------------------------------
+-- Public API
+-------------------------------------------------------------------------------
+-- region public
+
 --- Quick print function for debugging purposes.
 ---@vararg any Argument(s) to print
 ---@return ... The argument(s) passed to ic
-local function ic(...)
+function IceCream:ic(...)
    local info = getinfo(2, "Sln")
    local location = format("%s:%s", info.short_src, info.currentline)
 
@@ -153,4 +170,6 @@ local function ic(...)
    return ...
 end
 
-return ic
+-- endregion
+
+return setmetatable(IceCream, { __call = IceCream.ic })
