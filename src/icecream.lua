@@ -42,6 +42,24 @@ local traceback = debug.traceback
 stderr:setvbuf("no")
 
 -------------------------------------------------------------------------------
+-- Formatting
+-------------------------------------------------------------------------------
+-- region Formatting
+
+local ok, inspect = pcall(require, "inspect")
+if not ok then
+   inspect = function(value)
+      return value
+   end
+end
+
+function IceCream:format_value(value)
+   return inspect(value)
+end
+
+-- endregion
+
+-------------------------------------------------------------------------------
 -- Parse source
 -------------------------------------------------------------------------------
 -- region Parse source
@@ -190,7 +208,7 @@ function IceCream:ic(...)
          key = format("%s = ", arg)
       end
 
-      pretty_args[i] = format("%s%s", key, value)
+      pretty_args[i] = format("%s%s", key, self:format_value(value))
    end
 
    printf("%s: %s", header, tconcat(pretty_args, ", "))
