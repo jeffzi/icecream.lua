@@ -92,25 +92,30 @@ end
 --- Does not handle square-bracketed strings.
 ---@param info table
 ---@return string[]?, integer
-local function parse_args(info)
+local function parse_aliases(info)
    local source = read_source(info)
    local relative_line = info.currentline - info.linedefined + 1
 
    local ast = parse(source)
 
-   local args = {}
-   local arg_count = 0
+   local aliases = {}
+   local n = 0
    traverseTree(ast, function(node)
       if node.type == "call" and node.token.lineStart == relative_line then
-         for _, arg in ipairs(node.arguments) do
-            arg_count = arg_count + 1
-            tinsert(args, toLua(arg))
+         local node_arguments = node.arguments
+         n = #node_arguments
+         for i = 1, n do
+            local expr = node_arguments[i]
+            local expr_type = expr.type
+            if expr_type == "identifier" or expr_type == "call" then
+               aliases[i] = toLua(expr)
+            end
          end
          return "stop"
       end
    end)
 
-   return arg_count > 0 and args or nil, arg_count
+   return n > 0 and aliases or nil, n
 end
 
 -- endregion
@@ -137,7 +142,7 @@ function IceCream:ic(...)
       return ...
    end
 
-   local keys, key_count = parse_args(info)
+   local keys, key_count = parse_aliases(info)
    if not "keys" or key_count ~= select("#", ...) then
       error(format("Failed to parse arguments from source @%s", location))
    end
@@ -145,17 +150,15 @@ function IceCream:ic(...)
    local pretty_args = {}
    for i = 1, key_count do
       ---@cast keys string[]
-      local arg = keys[i]
-      local value = select(i, ...)
+      local key, value = keys[i], select(i, ...)
 
-      local key
-      if arg == tostring(value) then
+      if not key or key == tostring(value) then
          key = ""
       else
-         key = format("%s = ", arg)
+         key = format("%s = ", key)
       end
 
-      pretty_args[i] = format("%s%s", key, self:format_value(value))
+      pretty_args[i] = format("%s%s", key, tostring(value))
    end
 
    printf("%s: %s", header, tconcat(pretty_args, ", "))
