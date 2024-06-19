@@ -29,35 +29,17 @@ local IceCream = {
    ]],
 }
 
+local parser = require("dumbParser")
+local toLua, parse, traverseTree = parser.toLua, parser.parse, parser.traverseTree
+
 local format = string.format
 local getinfo = debug.getinfo
-local gsub = string.gsub
-local match = string.match
 local stderr = io.stderr
-local sub = string.sub
 local tconcat = table.concat
 local tinsert = table.insert
 local traceback = debug.traceback
 
 stderr:setvbuf("no")
-
--------------------------------------------------------------------------------
--- Formatting
--------------------------------------------------------------------------------
--- region Formatting
-
-local ok, inspect = pcall(require, "inspect")
-if not ok then
-   inspect = function(value)
-      return value
-   end
-end
-
-function IceCream:format_value(value)
-   return inspect(value)
-end
-
--- endregion
 
 -------------------------------------------------------------------------------
 -- Parse source
@@ -72,7 +54,7 @@ setmetatable(cache, { __mode = "kv" })
 ---@return string
 local function read_source(info)
    local filename = info.source:sub(2) -- Remove the '@' prefix
-   local start_line = info.currentline
+   local start_line = info.linedefined
    local end_line = info.lastlinedefined
 
    local cached_file = cache[filename]
@@ -106,60 +88,27 @@ local function printf(fmt, ...)
    stderr:write(format(fmt, ...))
 end
 
----@param s string
----@return string
-local function trim(s)
-   s = match(s, "^%s*(.*%S)") or "" -- trim spaces
-   s = gsub(s, "^([%[%[\"'])(.-)%1$", "%2") -- trim quotes
-   return s
-end
-
 --- Split the arguments string into a table of arguments.
 --- Does not handle square-bracketed strings.
----@param source string
+---@param info table
 ---@return string[]?, integer
-local function parse_args(source)
-   -- strip everything up to first argument
-   source = gsub(source, "^[^(]*%(", "")
+local function parse_args(info)
+   local source = read_source(info)
+   local relative_line = info.currentline - info.linedefined + 1
 
-   local size = #source
-   local args, arg_count = {}, 0
-   local current_arg = {}
-   local char_count = 0
-   local level, in_string = 0, false
+   local ast = parse(source)
 
-   for i = 1, size do
-      local char = sub(source, i, i)
-
-      if level == 0 and not in_string and (char == "," or char == ")") then
-         arg_count = arg_count + 1
-         args[arg_count] = trim(tconcat(current_arg))
-         current_arg = {}
-         char_count = 0
-
-         if char == ")" then
-            break
+   local args = {}
+   local arg_count = 0
+   traverseTree(ast, function(node)
+      if node.type == "call" and node.token.lineStart == relative_line then
+         for _, arg in ipairs(node.arguments) do
+            arg_count = arg_count + 1
+            tinsert(args, toLua(arg))
          end
-      else
-         char_count = char_count + 1
-         current_arg[char_count] = char
-
-         if char == '"' or char == "'" then
-            in_string = not in_string
-         elseif not in_string then
-            if char == "(" then
-               level = level + 1
-            elseif char == ")" then
-               level = level - 1
-            end
-         end
+         return "stop"
       end
-   end
-
-   if char_count > 0 then
-      arg_count = arg_count + 1
-      args[arg_count] = trim(tconcat(current_arg))
-   end
+   end)
 
    return arg_count > 0 and args or nil, arg_count
 end
@@ -188,9 +137,7 @@ function IceCream:ic(...)
       return ...
    end
 
-   local source = read_source(info)
-   local keys, key_count = parse_args(source)
-
+   local keys, key_count = parse_args(info)
    if not "keys" or key_count ~= select("#", ...) then
       error(format("Failed to parse arguments from source @%s", location))
    end
