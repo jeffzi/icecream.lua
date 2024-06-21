@@ -310,9 +310,28 @@ end
 ---@vararg any Argument(s) to print
 ---@return ... The argument(s) passed to ic
 function IceCream:ic(...)
-   local output = self:_format(...)
-   output_fn(output .. "\n")
+   if self.enabled then
+      local output = self:_format(...)
+      output_fn(output .. "\n")
+   end
    return ...
+end
+
+do
+   local no_icecream = os.getenv("NO_ICECREAM")
+   if no_icecream and no_icecream ~= "" then
+      IceCream.enabled = false
+   else
+      IceCream.enabled = true
+   end
+end
+
+function IceCream:enable()
+   self.enabled = true
+end
+
+function IceCream:disable()
+   self.enabled = false
 end
 
 -- endregion
