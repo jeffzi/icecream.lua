@@ -145,6 +145,9 @@ do
          s = wrap_table(original, options)
       end
       s = gsub(s, '%["@(.-)@"%]', format_key)
+      s = gsub(s, "(%[%d*%])(%s=)", function(index, post)
+         return format_key(index) .. post
+      end)
       s = gsub(s, '%b""', format_string)
       s = gsub(s, "%b''", format_string)
       s = gsub(s, "%b<>", format_bracketed)
