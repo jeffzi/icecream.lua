@@ -214,11 +214,6 @@ local function read_source(info)
    return source
 end
 
----@param s string
-local function output_fn(s)
-   stderr:write(s)
-end
-
 --- Split the arguments string into a table of arguments.
 --- Does not handle square-bracketed strings.
 ---@param info table
@@ -256,14 +251,40 @@ end
 -------------------------------------------------------------------------------
 -- region public
 
-function IceCream:_format(...)
-   local info = getinfo(3, "Sln")
-   local location = info.short_src .. ":" .. info.currentline
+IceCream.include_context = true
+IceCream.prefix = "ic|"
+IceCream.output_function = function(s)
+   stderr:write(s)
+end
 
-   local fn_name = info.name
-   local header = "[" .. location .. "]"
-   if fn_name then
-      header = header .. "(" .. fn_name .. ")"
+function IceCream:configure(include_context, prefix, output_function)
+   if include_context ~= nil then
+      self.include_context = include_context
+   end
+   if prefix ~= nil then
+      self.prefix = prefix
+   end
+   if output_function ~= nil then
+      self.output_function = output_function
+   end
+end
+
+function IceCream:_format(...)
+   local include_context = self.include_context
+   if include_context == nil then
+      include_context = true
+   end
+
+   local info = getinfo(3, "Sln")
+
+   local location = info.short_src .. ":" .. info.currentline
+   local header = self.prefix
+   if include_context then
+      header = header .. " " .. location
+      local fn_name = info.name
+      if fn_name then
+         header = header .. " <" .. fn_name .. ">"
+      end
    end
    header = format_header(header)
 
@@ -271,6 +292,7 @@ function IceCream:_format(...)
    if arg_count == 0 then
       return header .. " " .. (traceback("", 3) or "")
    end
+
    local keys, key_count = parse_aliases(info)
    if not "keys" or key_count ~= select("#", ...) then
       error("Failed to parse arguments from source @" .. location)
@@ -312,7 +334,7 @@ end
 function IceCream:ic(...)
    if self.enabled then
       local output = self:_format(...)
-      output_fn(output .. "\n")
+      self.output_function(output .. "\n")
    end
    return ...
 end
