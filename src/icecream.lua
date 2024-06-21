@@ -119,7 +119,7 @@ do
       return s
    end
 
-   function IceCream:format(s)
+   function IceCream:_prettify(s)
       if not self.color then
          return inspect(s)
       end
@@ -256,11 +256,8 @@ end
 -------------------------------------------------------------------------------
 -- region public
 
---- Quick print function for debugging purposes.
----@vararg any Argument(s) to print
----@return ... The argument(s) passed to ic
-function IceCream:ic(...)
-   local info = getinfo(2, "Sln")
+function IceCream:_format(...)
+   local info = getinfo(3, "Sln")
    local location = info.short_src .. ":" .. info.currentline
 
    local fn_name = info.name
@@ -272,10 +269,8 @@ function IceCream:ic(...)
 
    local arg_count = select("#", ...)
    if arg_count == 0 then
-      output_fn(traceback() .. "\n")
-      return ...
+      return header .. " " .. (traceback("", 3) or "")
    end
-
    local keys, key_count = parse_aliases(info)
    if not "keys" or key_count ~= select("#", ...) then
       error("Failed to parse arguments from source @" .. location)
@@ -292,7 +287,7 @@ function IceCream:ic(...)
          key = format_key(key) .. " = "
       end
 
-      pretty_args[i] = key .. self:format(value)
+      pretty_args[i] = key .. self:_prettify(value)
    end
 
    local output = tconcat(pretty_args, ", ")
@@ -301,8 +296,22 @@ function IceCream:ic(...)
       output = sep .. tconcat(pretty_args, sep)
    end
 
-   output_fn(header .. " " .. output)
-   output_fn("\n")
+   return header .. " " .. output
+end
+
+--- Format its arguments for debugging purposes.
+---@vararg any Argument(s) to format
+---@return ... The argument(s) passed to format
+function IceCream:format(...)
+   return self:_format(...)
+end
+
+--- Quick print function for debugging purposes.
+---@vararg any Argument(s) to print
+---@return ... The argument(s) passed to ic
+function IceCream:ic(...)
+   local output = self:_format(...)
+   output_fn(output .. "\n")
    return ...
 end
 
