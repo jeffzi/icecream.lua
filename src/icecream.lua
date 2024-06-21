@@ -39,7 +39,9 @@ local match = string.match
 local stderr = io.stderr
 local tconcat = table.concat
 local tinsert = table.insert
-local traceback = debug.traceback
+
+local has_stack_trace_plus, stp = pcall(require, "StackTracePlus")
+local traceback = has_stack_trace_plus and stp.stacktrace or debug.traceback
 
 stderr:setvbuf("no")
 
