@@ -48,6 +48,14 @@ stderr:setvbuf("no")
 -------------------------------------------------------------------------------
 -- region Formatting
 
+IceCream.max_width = 80
+IceCream.indent = "  "
+IceCream.color = true
+
+local function should_wrap(s)
+   return #gsub(s, "\27%[%d+m", "") > IceCream.max_width
+end
+
 local colorizer, format_key, format_header
 do
    local has_inspect, inspect = pcall(require, "inspect")
@@ -57,7 +65,6 @@ do
       end
    end
 
-   IceCream.color = true
    local nocolor = os.getenv("NO_COLOR")
    if nocolor and nocolor ~= "" then
       IceCream.color = false
@@ -99,6 +106,19 @@ do
       return item
    end
 
+   local function wrap_table(s, options)
+      local indent = IceCream.indent
+      options.indent = indent
+      options.newline = "\n" .. indent
+      ---@diagnostic disable-next-line: redundant-parameter
+      s = inspect(s, options)
+      -- indent opening bracket
+      s = gsub(s, "{", "{\n" .. indent .. " ", 1)
+      -- remove empty lines
+      s = gsub(s, "\n%s*\n", "\n")
+      return s
+   end
+
    function IceCream:format(s)
       if not self.color then
          return inspect(s)
@@ -116,8 +136,14 @@ do
       end
 
       -- Formatting a table
+      local original = s
+      local options = { newline = " ", indent = "" }
+      options.process = tag_key
       ---@diagnostic disable-next-line: redundant-parameter
-      s = inspect(s, { process = tag_key })
+      s = inspect(original, options)
+      if #s > IceCream.max_width then
+         s = wrap_table(original, options)
+      end
       s = gsub(s, '%["@(.-)@"%]', format_key)
       s = gsub(s, '%b""', format_string)
       s = gsub(s, "%b''", format_string)
@@ -237,15 +263,13 @@ function IceCream:ic(...)
    local fn_name = info.name
    local header = "[" .. location .. "]"
    if fn_name then
-      header = format_header(header .. "(" .. fn_name .. ")")
-   else
-      header = format_header(header)
+      header = header .. "(" .. fn_name .. ")"
    end
+   header = format_header(header)
 
    local arg_count = select("#", ...)
    if arg_count == 0 then
-      output_fn(traceback())
-      output_fn("\n")
+      output_fn(traceback() .. "\n")
       return ...
    end
 
@@ -268,7 +292,13 @@ function IceCream:ic(...)
       pretty_args[i] = key .. self:format(value)
    end
 
-   output_fn(header .. " " .. tconcat(pretty_args, ", "))
+   local output = tconcat(pretty_args, ", ")
+   if should_wrap(output) then
+      local sep = "\n" .. self.indent
+      output = sep .. tconcat(pretty_args, sep)
+   end
+
+   output_fn(header .. " " .. output)
    output_fn("\n")
    return ...
 end
