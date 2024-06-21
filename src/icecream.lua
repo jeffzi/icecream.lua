@@ -16,7 +16,8 @@ local IceCream = {
       copies of the Software, and to permit persons to whom the Software is
       furnished to do so, subject to the following conditions:
 
-      The above copyright notice and this permission notice shall be included in all
+      The above copyright notice and
+      this permission notice shall be included in all
       copies or substantial portions of the Software.
 
       THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -115,6 +116,7 @@ do
       end
 
       -- Formatting a table
+      ---@diagnostic disable-next-line: redundant-parameter
       s = inspect(s, { process = tag_key })
       s = gsub(s, '%["@(.-)@"%]', format_key)
       s = gsub(s, '%b""', format_string)
