@@ -255,6 +255,7 @@ end
 
 IceCream.include_context = true
 IceCream.prefix = "ic|"
+
 IceCream.output_function = function(s)
    stderr:write(s)
 end
@@ -264,7 +265,11 @@ function IceCream:configure(include_context, prefix, output_function)
       self.include_context = include_context
    end
    if prefix ~= nil then
-      self.prefix = prefix
+      if type(prefix) == "function" then
+         self.prefix = prefix()
+      else
+         self.prefix = prefix
+      end
    end
    if output_function ~= nil then
       self.output_function = output_function
@@ -281,6 +286,7 @@ function IceCream:_format(...)
 
    local location = info.short_src .. ":" .. info.currentline
    local header = self.prefix
+
    if include_context then
       header = header .. " " .. location
       local fn_name = info.name
