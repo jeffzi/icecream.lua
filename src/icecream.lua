@@ -296,11 +296,6 @@ end
 local INFO_LEVEL = (_VERSION == "Lua 5.1" and not jit) and 3 or 2
 
 function IceCream:_format(...)
-   local include_context = config.include_context
-   if include_context == nil then
-      include_context = true
-   end
-
    local info = getinfo(INFO_LEVEL, "Sln")
    if info.short_src == "[C]" or info.namewhat == "upvalue" then
       info = getinfo(INFO_LEVEL + 1, "Sln")
@@ -309,7 +304,7 @@ function IceCream:_format(...)
    local location = info.short_src .. ":" .. info.currentline
    local header = config.prefix
 
-   if include_context then
+   if config.include_context then
       if header ~= "" then
          header = header .. " "
       end
@@ -377,14 +372,6 @@ function IceCream:ic(...)
    return ...
 end
 
-do
-   if is_env_set("NO_ICECREAM") then
-      IceCream.enabled = false
-   else
-      IceCream.enabled = true
-   end
-end
-
 function IceCream:enable()
    if not is_env_set("NO_ICECREAM") then
       self.enabled = true
@@ -418,6 +405,7 @@ local mt = {
 }
 
 IceCream:_configure_color()
+IceCream:enable()
 
 -- endregion
 
