@@ -119,12 +119,21 @@ local function should_wrap(s)
    return #gsub(s, "\27%[%d+m", "") > config.max_width
 end
 
-local function wrap_table(s, options)
+local function wrap(s, process)
+   local original = s
+   local options = { newline = " ", indent = "" }
+   options.process = process
+   ---@diagnostic disable-next-line: redundant-parameter
+   s = inspect(original, options)
+   if #s <= config.max_width then
+      return s
+   end
+
    local indent = config.indent
    options.indent = indent
    options.newline = "\n" .. indent
    ---@diagnostic disable-next-line: redundant-parameter
-   s = inspect(s, options)
+   s = inspect(original, options)
    -- indent opening bracket
    s = gsub(s, "{", "{\n" .. indent .. " ", 1)
    -- remove empty lines
@@ -134,7 +143,7 @@ end
 
 function IceCream:_prettify(s)
    if not self.color then
-      return inspect(s)
+      return wrap(s)
    end
 
    local type_ = type(s)
@@ -149,14 +158,7 @@ function IceCream:_prettify(s)
    end
 
    -- Formatting a table
-   local original = s
-   local options = { newline = " ", indent = "" }
-   options.process = tag_key
-   ---@diagnostic disable-next-line: redundant-parameter
-   s = inspect(original, options)
-   if #s > config.max_width then
-      s = wrap_table(original, options)
-   end
+   s = wrap(s, tag_key)
    s = gsub(s, '%["@(.-)@"%]', self.format_key)
    s = gsub(s, "(%[%d*%])(%s=)", function(index, post)
       return self.format_key(index) .. post
@@ -304,7 +306,6 @@ function IceCream:_format(...)
    end
 
    local keys, key_count = parse_aliases(info)
-   print(keys, key_count, select("#", ...))
    if not "keys" or key_count ~= select("#", ...) then
       error("Failed to parse arguments from source @" .. location)
    end
