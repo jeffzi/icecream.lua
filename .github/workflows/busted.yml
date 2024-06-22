@@ -8,7 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         luaVersion: ["5.4", "5.3", "5.2", "5.1", "luajit"]
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest]
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -19,6 +19,10 @@ jobs:
         uses: leafo/gh-actions-lua@v10
         with:
           luaVersion: ${{ matrix.luaVersion }}
+
+      - name: Setup macOS deps
+        if: ${{ contains(matrix.os, 'macos') }}
+        run: brew install openssl
 
       - name: Setup LuaRocks
         uses: leafo/gh-actions-luarocks@v4
