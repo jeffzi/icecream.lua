@@ -62,6 +62,12 @@ local config = {
    end,
 }
 
+---@param varname string
+---@return boolean
+local function is_env_set(varname)
+   local value = os.getenv(varname)
+   return value ~= nil and value ~= ""
+end
 -- endregion
 
 -------------------------------------------------------------------------------
@@ -70,9 +76,8 @@ local config = {
 -- region Formatting
 
 do
-   local nocolor = os.getenv("NO_COLOR")
-   if nocolor and nocolor ~= "" then
-      IceCream.color = false
+   if is_env_set("NO_COLOR") then
+      config.color = false
    end
 
    local has_ansicolors, ansicolors = pcall(require, "ansicolors")
@@ -289,7 +294,10 @@ function IceCream:_format(...)
    local header = config.prefix
 
    if include_context then
-      header = header .. " " .. location
+      if header ~= "" then
+         header = header .. " "
+      end
+      header = header .. location
       local fn_name = info.name
       if fn_name then
          header = header .. " <" .. fn_name .. ">"
@@ -351,8 +359,7 @@ function IceCream:ic(...)
 end
 
 do
-   local no_icecream = os.getenv("NO_ICECREAM")
-   if no_icecream and no_icecream ~= "" then
+   if is_env_set("NO_ICECREAM") then
       IceCream.enabled = false
    else
       IceCream.enabled = true
@@ -360,7 +367,9 @@ do
 end
 
 function IceCream:enable()
-   self.enabled = true
+   if not is_env_set("NO_ICECREAM") then
+      self.enabled = true
+   end
 end
 
 function IceCream:disable()
