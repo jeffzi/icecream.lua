@@ -259,6 +259,13 @@ local function parse_aliases(info)
    local n = 0
    traverseTree(ast, function(node)
       if node.type == "call" and node.token.lineStart == relative_line then
+         local callee = node.callee
+         local object = callee.object
+         local name = object and object.name or callee.name
+         if name ~= "ic" then
+            return
+         end
+
          local node_arguments = node.arguments
          n = #node_arguments
          for i = 1, n do
