@@ -57,6 +57,9 @@ local config = {
    include_context = true,
    prefix = "ic|",
    traceback = traceback,
+   output_function = function(s)
+      stderr:write(s)
+   end,
 }
 
 -- endregion
@@ -274,10 +277,6 @@ end
 -------------------------------------------------------------------------------
 -- region public
 
-IceCream.output_function = function(s)
-   stderr:write(s)
-end
-
 function IceCream:_format(...)
    local include_context = config.include_context
    if include_context == nil then
@@ -346,7 +345,7 @@ end
 function IceCream:ic(...)
    if self.enabled then
       local output = self:_format(...)
-      self.output_function(output .. "\n")
+      config.output_function(output .. "\n")
    end
    return ...
 end
