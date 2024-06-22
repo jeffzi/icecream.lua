@@ -201,6 +201,12 @@ local function read_source(info)
    local start_line = info.linedefined
    local end_line = info.lastlinedefined
 
+   if start_line == 0 then
+      -- source is not in a function
+      start_line = info.currentline
+      end_line = start_line
+   end
+
    local cached_file = cache[filename]
    if cached_file then
       local cached_function = cached_file[start_line]
@@ -232,7 +238,10 @@ end
 ---@return string[]?, integer
 local function parse_aliases(info)
    local source = read_source(info)
-   local relative_line = info.currentline - info.linedefined + 1
+
+   local linedefined = info.linedefined
+   -- relative_line = 1 if source is not in a function
+   local relative_line = linedefined > 0 and info.currentline - linedefined + 1 or 1
 
    local ast = parse(source)
 
