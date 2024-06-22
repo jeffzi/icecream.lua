@@ -7,8 +7,4 @@ include_files = {
    ".luacheckrc",
 }
 
-files["spec/**/*.lua"] = {
-   std = "+busted",
-}
-
 ignore = { "212/self" } -- unused argument self

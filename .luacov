@@ -1,0 +1,9 @@
+modules = {
+   ["icecream"] = "src/icecream.lua",
+   ["icecream.*"] = "src",
+}
+
+reporter = "html"
+reportfile = "luacov_report.html"
+
+runreport = true

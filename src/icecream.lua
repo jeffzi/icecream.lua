@@ -109,9 +109,12 @@ do
    local has_inspect
    has_inspect, inspect = pcall(require, "inspect")
    if not has_inspect then
-      inspect = function(value)
-         return value
-      end
+      inspect = {}
+      setmetatable(inspect, {
+         __call = function(value)
+            return value
+         end,
+      })
    end
 end
 
@@ -150,7 +153,7 @@ local function wrap(s, process)
 end
 
 function IceCream:_prettify(s)
-   if not self.color then
+   if not config.color then
       return wrap(s)
    end
 
@@ -305,6 +308,7 @@ function IceCream:_format(...)
          header = header .. " "
       end
       header = header .. location
+
       local fn_name = info.name
       if fn_name then
          header = header .. " <" .. fn_name .. ">"
@@ -342,9 +346,11 @@ function IceCream:_format(...)
    if should_wrap(output) then
       local sep = "\n" .. config.indent
       output = sep .. tconcat(pretty_args, sep)
+   else
+      header = header .. " "
    end
 
-   return header .. " " .. output
+   return header .. output
 end
 
 --- Format its arguments for debugging purposes.
