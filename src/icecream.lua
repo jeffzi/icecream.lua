@@ -68,6 +68,7 @@ local function is_env_set(varname)
    local value = os.getenv(varname)
    return value ~= nil and value ~= ""
 end
+
 -- endregion
 
 -------------------------------------------------------------------------------
@@ -292,13 +293,18 @@ end
 -------------------------------------------------------------------------------
 -- region public
 
+local INFO_LEVEL = (_VERSION == "Lua 5.1" and not jit) and 3 or 2
+
 function IceCream:_format(...)
    local include_context = config.include_context
    if include_context == nil then
       include_context = true
    end
 
-   local info = getinfo(3, "Sln")
+   local info = getinfo(INFO_LEVEL, "Sln")
+   if info.short_src == "[C]" or info.namewhat == "upvalue" then
+      info = getinfo(INFO_LEVEL + 1, "Sln")
+   end
 
    local location = info.short_src .. ":" .. info.currentline
    local header = config.prefix
@@ -325,7 +331,7 @@ function IceCream:_format(...)
 
    local keys, key_count = parse_aliases(info)
    if not "keys" or key_count ~= select("#", ...) then
-      error("Failed to parse arguments from source @" .. location)
+      error("Failed to parse arguments from source " .. location)
    end
 
    local pretty_args = {}
