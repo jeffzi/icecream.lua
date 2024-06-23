@@ -25,6 +25,7 @@ describe("IceCream", function()
    end)
 
    before_each(function()
+      ic.prefix = "ic|"
       ic.color = false
       ic.include_context = true
       ic.max_width = 80
@@ -41,24 +42,24 @@ describe("IceCream", function()
    it("ic()", function()
       local s = ic:format()
       assert.is_truthy(s:lower():find("stack traceback"))
-      assert.string_match(s, "^ic| spec/icecream_spec%.lua:")
+      assert.string_match(s, "^ic| spec/core_spec%.lua:")
    end)
 
    it("ic(9.9, true, 'foo', function() end)", function()
       local s = ic:format(9.9, true, "foo", function() end)
-      assert.string_match(s, '^ic| spec/icecream_spec%.lua:%d+: 9.9, true, "foo", <function %d+>$')
+      assert.string_match(s, '^ic| spec/core_spec%.lua:%d+: 9.9, true, "foo", <function %d+>$')
    end)
 
    it("ic(x, y, z)", function()
       local x, y, z = 1, 2, 3
       local s = ic:format(x, y, z)
-      assert.string_match(s, "^ic| spec/icecream_spec%.lua:%d+: x = 1, y = 2, z = 3$")
+      assert.string_match(s, "^ic| spec/core_spec%.lua:%d+: x = 1, y = 2, z = 3$")
    end)
 
    it("ic(math.abs(x))", function()
       local x = 42
       local s = ic:format(math.abs(x))
-      assert.string_match(s, "^ic| spec/icecream_spec%.lua:%d+: math%.abs%(x%) = 42$")
+      assert.string_match(s, "^ic| spec/core_spec%.lua:%d+: math%.abs%(x%) = 42$")
    end)
 
    it("ic({ _true = false, __call = function() end})", function()
@@ -66,7 +67,7 @@ describe("IceCream", function()
       local s = ic:format(x)
       assert.string_match(
          s,
-         "^ic| spec/icecream_spec%.lua:%d+: x = { __call = <function %d+>, _true = false }$"
+         "^ic| spec/core_spec%.lua:%d+: x = { __call = <function %d+>, _true = false }$"
       )
    end)
 
@@ -106,7 +107,7 @@ describe("IceCream", function()
       local s = ic:format(9.9, true, "foo", t)
 
       local lines = {
-         "^ic| spec/icecream_spec%.lua:%d+:%s*\n",
+         "^ic| spec/core_spec%.lua:%d+:%s*\n",
          "9%.9%s*\n",
          "true%s*\n",
          '"foo"%s*\n',
@@ -123,7 +124,24 @@ describe("IceCream", function()
       local x = 42
       local dbg = ic
       local s = dbg:format(x)
-      assert.string_match(s, "^ic| spec/icecream_spec%.lua:%d+: x = 42$")
+      assert.string_match(s, "^ic| spec/core_spec%.lua:%d+: x = 42$")
+   end)
+
+   it("passthrough", function()
+      local expected_i, expected_s, expected_t, expected_b, expected_n = 42, "hello", {}, false, nil
+      local i, s, t, b, n = ic(expected_i, expected_s, expected_t, expected_b, expected_n)
+      assert.are_equal(expected_i, i)
+      assert.are_equal(expected_s, s)
+      assert.are_equal(expected_t, t)
+      assert.are_equal(expected_b, b)
+      assert.are_equal(expected_n, n)
+   end)
+
+   it("ic.prefix", function()
+      local new_prefix = "TEST"
+      ic.prefix = new_prefix
+      local s = ic:format("hello")
+      assert.string_match(s, "^" .. new_prefix .. ' spec/core_spec%.lua:%d+: "hello"')
    end)
 
    it("ic.traceback", function()
@@ -200,44 +218,15 @@ describe("IceCream", function()
       assert.spy(spy_output).was.returned_with(expected)
    end)
 
-   describe("environment", function()
-      local sys
+   it("wrong option", function()
+      assert.has_error(function()
+         ic.foo = 1
+      end, "foo is not a valid config option.")
 
-      setup(function()
-         sys = require("system")
-         -- luacheck: push ignore
-         os.getenv = sys.getenv
-         -- luacheck: pop
-      end)
-
-      before_each(function()
-         sys.setenv("NO_COLOR", nil)
-      end)
-
-      it("NO_COLOR", function()
-         sys.setenv("NO_COLOR", 1)
-         ic = require("icecream")
-
-         assert.is_false(ic.color)
-         assert.string_match(ic:format("hello"), '^ic| spec/icecream_spec%.lua:%d+: "hello"$')
-      end)
-
-      it("NO_ICECREAM", function()
-         sys.setenv("NO_ICECREAM", 1)
-         ic = require("icecream")
-
-         local spy_output = spy.new(function(s)
-            return s
-         end)
-         ic.output_function = spy_output
-
-         ic:disable()
-         ic("hello")
-         assert.spy(spy_output).was.called(0)
-
-         ic:enable()
-         ic("hello")
-         assert.spy(spy_output).was.called(0)
-      end)
+      for _, opt in pairs({ "indent", "color", "prefix", "traceback", "output_function" }) do
+         assert.has_error(function()
+            ic[opt] = nil
+         end, opt .. " option cannot be set to nil.")
+      end
    end)
 end)
