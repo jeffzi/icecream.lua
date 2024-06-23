@@ -124,13 +124,13 @@ assert(t == ic(t))
 IceCream allows customization of its output behavior through configuration options:
 
 ```lua
-ic.color = false                        -- Disable colorized output.
-ic.max_width = 100                      -- Wrap text to new lines if longer than 100 characters.
-ic.indent = "    "                      -- Indent with 4 spaces.
-ic.prefix = "DEBUG"                     -- Change the prefix from 'ic|' to 'DEBUG'.
-ic.include_context = false              -- Disable file name, line number, and function name output.
-ic.traceback = function() ... end       -- Custom traceback function, defaults to debug.traceback.
-ic.output_function = function() ... end -- Custom output function, e.g., write to a file.
+ic.color = false                     -- Disable colorized output.
+ic.max_width = 100                   -- Wrap text to new lines if longer than 100 characters.
+ic.indent = "    "                   -- Indent with 4 spaces.
+ic.prefix = "DEBUG"                  -- Change the prefix from 'ic|' to 'DEBUG'.
+ic.include_context = false           -- Disable file name, line number, and function name output.
+ic.traceback = function() end        -- Custom traceback function (can be nil), defaults to debug.traceback.
+ic.output_function = function() end  -- Custom output function, e.g., write to a file.
 ```
 
 ## Dynamic Enabling/Disabling

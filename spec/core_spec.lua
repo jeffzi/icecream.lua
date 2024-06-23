@@ -19,9 +19,11 @@ say:set("assertion.string_match.negative", "Expected %s to not match %s")
 
 describe("IceCream", function()
    local ic
+   local original_traceback
 
    setup(function()
       ic = require("icecream")
+      original_traceback = ic.traceback
    end)
 
    before_each(function()
@@ -30,6 +32,7 @@ describe("IceCream", function()
       ic.include_context = true
       ic.max_width = 80
       ic.indent = "  "
+      ic.traceback = original_traceback
       ic:enable()
    end)
 
@@ -41,7 +44,7 @@ describe("IceCream", function()
 
    it("ic()", function()
       local s = ic:format()
-      assert.is_truthy(s:lower():find("stack traceback"))
+      assert.string_match(s:lower(), "stack traceback")
       assert.string_match(s, "^ic| spec/core_spec%.lua:")
    end)
 
@@ -151,7 +154,11 @@ describe("IceCream", function()
       end
 
       local s = ic:format()
-      assert.string_match(s:lower(), expected)
+      assert.string_match(s, expected)
+
+      ic.traceback = nil
+      s = ic:format()
+      assert.no.string_match(s:lower(), "stack traceback")
    end)
 
    it("ic.enable/disable", function()
@@ -223,7 +230,7 @@ describe("IceCream", function()
          ic.foo = 1
       end, "foo is not a valid config option.")
 
-      for _, opt in pairs({ "indent", "color", "prefix", "traceback", "output_function" }) do
+      for _, opt in pairs({ "indent", "color", "prefix", "output_function" }) do
          assert.has_error(function()
             ic[opt] = nil
          end, opt .. " option cannot be set to nil.")

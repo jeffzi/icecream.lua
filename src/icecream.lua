@@ -376,7 +376,10 @@ function IceCream:_format(...)
 
    local arg_count = select("#", ...)
    if arg_count == 0 then
-      return header .. " " .. (config.traceback("", 3) or "")
+      if config.traceback then
+         return header .. " " .. (config.traceback("", 3) or "")
+      end
+      return header
    end
 
    local keys, key_count = parse_aliases(info)
@@ -444,7 +447,7 @@ local mt = {
       return config[k]
    end,
    __newindex = function(_, k, v)
-      if k ~= "max_width" then
+      if k ~= "max_width" and k ~= "traceback" then
          if config[k] == nil then
             error(k .. " is not a valid config option.")
          end
