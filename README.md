@@ -1,7 +1,7 @@
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 [![Busted](https://github.com/jeffzi/icecream.lua/actions/workflows/busted.yml/badge.svg)](https://github.com/jeffzi/icecream.lua/actions/workflows/busted.yml)
 [![Luacheck](https://github.com/jeffzi/icecream.lua/actions/workflows/luacheck.yml/badge.svg)](https://github.com/jeffzi/icecream.lua/actions/workflows/luacheck.yml)
-[![Luarocks](https://img.shields.io/luarocks/v/jeffzi/icecream.lua?label=Luarocks&logo=Lua)](https://luarocks.org/modules/jeffzi/icecream.lua)
+[![Luarocks](https://img.shields.io/luarocks/v/jeffzi/icecream?label=Luarocks&logo=Lua)](https://luarocks.org/modules/jeffzi/icecream)
 
 # icecream.lua
 
