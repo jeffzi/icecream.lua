@@ -70,6 +70,30 @@ describe("IceCream", function()
       )
    end)
 
+   local function count_lines(str)
+      local count = #str > 0 and 1 or 0
+      for _ in string.gmatch(str, "\n") do
+         count = count + 1
+      end
+      return count
+   end
+
+   it("ic.max_width", function()
+      local t = { a = 1, b = 2, c = 3, d = 4 }
+      local s = ic:format(t)
+      assert.is_true(count_lines(s) == 1)
+
+      ic.max_width = nil
+      s = ic:format(t)
+      assert.is_true(count_lines(s) == 1)
+
+      local new_width = 10
+      ic.max_width = new_width
+      s = ic:format(t)
+      assert.is_true(ic.max_width == new_width)
+      assert.is_true(count_lines(s) > 1)
+   end)
+
    it("wrap long", function()
       ic.max_width = 10
       ic.indent = ""

@@ -51,7 +51,6 @@ stderr:setvbuf("no")
 -- region Config
 
 local config = {
-   max_width = 80,
    indent = "  ",
    color = true,
    include_context = true,
@@ -62,10 +61,39 @@ local config = {
    end,
 }
 
+local get_env, get_termsize
+do
+   local default_termsize = function()
+      return config.max_width or 80
+   end
+
+   local has_sys, sys = pcall(require, "system")
+
+   if not has_sys then
+      get_env = os.getenv
+      get_termsize = default_termsize
+   else
+      get_env = sys.getenv or os.getenv -- get_env added to luasystem v0.3.0
+      local termsize = sys.termsize
+      if termsize then -- get_env added to luasystem v0.4.0
+         get_termsize = function()
+            local max_width = config.max_width
+            if max_width then
+               return max_width
+            end
+            local _, cols = termsize()
+            return cols
+         end
+      else
+         get_termsize = default_termsize
+      end
+   end
+end
+
 ---@param varname string
 ---@return boolean
 local function is_env_set(varname)
-   local value = os.getenv(varname)
+   local value = get_env(varname)
    return value ~= nil and value ~= ""
 end
 
@@ -128,7 +156,7 @@ local function tag_key(item, path)
 end
 
 local function should_wrap(s)
-   return #gsub(s, "\27%[%d+m", "") > config.max_width
+   return #gsub(s, "\27%[%d+m", "") > get_termsize()
 end
 
 local function wrap(s, process)
@@ -137,7 +165,7 @@ local function wrap(s, process)
    options.process = process
    ---@diagnostic disable-next-line: redundant-parameter
    s = inspect(original, options)
-   if #s <= config.max_width then
+   if #s <= get_termsize() then
       return s
    end
 
@@ -394,12 +422,14 @@ local mt = {
       return config[k]
    end,
    __newindex = function(_, k, v)
-      if config[k] == nil then
-         error(k .. " is not a valid config option.")
-      end
+      if k ~= "max_width" then
+         if config[k] == nil then
+            error(k .. " is not a valid config option.")
+         end
 
-      if v == nil then
-         error(k .. " option cannot be set to nil.")
+         if v == nil then
+            error(k .. " option cannot be set to nil.")
+         end
       end
 
       config[k] = v
