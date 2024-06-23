@@ -346,14 +346,12 @@ end
 -------------------------------------------------------------------------------
 -- region public
 
-local INFO_LEVEL = (_VERSION == "Lua 5.1" and not jit) and 3 or 2
-
 ---@vararg any
 ---@return string
-function IceCream:_format(...)
-   local info = getinfo(INFO_LEVEL, "Sln")
-   if info.short_src == "[C]" or info.namewhat == "upvalue" then
-      info = getinfo(INFO_LEVEL + 1, "Sln")
+function IceCream:_format(level, ...)
+   local info = getinfo(level, "Sln")
+   if info.namewhat == "upvalue" then
+      info = getinfo(level + 1, "Sln")
    end
 
    local location = info.short_src .. ":" .. info.currentline
@@ -412,11 +410,13 @@ function IceCream:_format(...)
    return header .. output
 end
 
+local FORMAT_LEVEL = (_VERSION == "Lua 5.1" and not jit) and 3 or 2
+
 --- Format its arguments for debugging purposes.
 ---@vararg any Argument(s) to format
 ---@return string
 function IceCream:format(...)
-   return self:_format(...)
+   return self:_format(FORMAT_LEVEL, ...)
 end
 
 --- Quick print function for debugging purposes.
@@ -424,7 +424,7 @@ end
 ---@return ... The argument(s) passed to ic
 function IceCream:ic(...)
    if config.enabled then
-      local output = self:_format(...)
+      local output = self:_format(3, ...)
       config.output_function(output .. "\n")
    end
    return ...
