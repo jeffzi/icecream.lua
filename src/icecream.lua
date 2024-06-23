@@ -140,8 +140,8 @@ do
    if not has_inspect then
       inspect = {}
       setmetatable(inspect, {
-         __call = function(value)
-            return value
+         __call = function(_, value)
+            return tostring(value)
          end,
       })
    end
