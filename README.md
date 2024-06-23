@@ -3,11 +3,11 @@
 [![Luacheck](https://github.com/jeffzi/icecream.lua/actions/workflows/luacheck.yml/badge.svg)](https://github.com/jeffzi/icecream.lua/actions/workflows/luacheck.yml)
 [![Luarocks](https://img.shields.io/luarocks/v/jeffzi/icecream.lua?label=Luarocks&logo=Lua)](https://luarocks.org/modules/jeffzi/icecream.lua)
 
-# IceCream Lua
+# icecream.lua
 
-IceCream Lua is a debugging utility inspired by the Python [IceCream](https://github.com/gruns/icecream) library,
-designed to enhance print debugging with inspection in Lua applications.
-Say goodbye to traditional print statements and welcome a more informative and visually appealing debugging experience.
+`icecream.lua` is a port of the debugging utility [IceCream](https://github.com/gruns/icecream).
+It enhances print debugging by providing more informative and visually appealing output for Lua applications.
+Say goodbye to traditional print statements and embrace a better way to debug your code.
 
 Use `ic()` just like you would use `print()` for debugging:
 
@@ -34,11 +34,23 @@ Output (with default settings):
 
 ## Installation
 
-To install IceCream using [LuaRocks](https://luarocks.org/), run the following command:
+### [LuaRocks](https://luarocks.org/)
 
 ```shell
 luarocks install luamark
 ```
+
+### Manual Installation
+
+`icecream.lua` is a single file that can be easily integrated into your project.
+Simply download icecream.lua and include it in your project directory.
+
+Ensure that the required dependencies are also available:
+
+- **[dumbParser](https://github.com/ReFreezed/DumbLuaParser/blob/master/dumbParser.lua):** required
+- **[ansicolors](https://github.com/kikito/ansicolors.lua):** Mandatory for enabling colored output.
+- **[inspect](https://github.com/kikito/inspect.lua):** Recommended for pretty-printing tables.
+- **[luasystem](https://github.com/lunarmodules/luasystem):** Adds terminal width detection and consistent environment variable reading on Windows.
 
 ## Usage
 
@@ -146,15 +158,6 @@ Debugging output can also be permanently disabled by setting the environment var
 ## ic:format()
 
 `ic:format()` is the same as calling `ic()` but returns a string rather than printing the output.
-
-## Dependencies
-
-The only hard dependency is **[dumbParser](https://github.com/ReFreezed/DumbLuaParser/blob/master/dumbParser.lua)**.
-Optional dependencies include:
-
-- **[luasystem](https://github.com/lunarmodules/luasystem):** Adds terminal width detection and consistent environment variable reading on Windows.
-- **[ansicolors](https://github.com/kikito/ansicolors.lua):** Mandatory for enabling colored output.
-- **[inspect](https://github.com/kikito/inspect.lua):** Recommended for pretty-printing tables.
 
 ## Limitations
 
