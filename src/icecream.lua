@@ -76,13 +76,16 @@ do
    else
       get_env = sys.getenv or os.getenv -- get_env added to luasystem v0.3.0
       local termsize = sys.termsize
-      if termsize then -- get_env added to luasystem v0.4.0
+      -- termsize added to luasystem v0.4.0
+      -- termize can return "Failed to get terminal size.: Inappropriate ioctl for device"
+      if termsize and select(2, termsize()) == "number" then
          get_termsize = function()
             local max_width = config.max_width
             if max_width then
                return max_width
             end
             local _, cols = termsize()
+            print(cols)
             return cols
          end
       else
