@@ -258,20 +258,24 @@ local function parse_aliases(info)
    local relative_line = linedefined > 0 and info.currentline - linedefined + 1 or 1
 
    local ast = parse(source)
-
-   local aliases = {}
+   local aliases
+   local call_count = 0
    local n = 0
+
    traverseTree(ast, function(node)
       if node.type == "call" and node.token.lineStart == relative_line then
+         call_count = call_count + 1
+
          local callee = node.callee
          local object = callee.object
          local name = object and object.name or callee.name
-         if name ~= "ic" then
+         if name ~= "ic" and call_count > 1 then
             return
          end
 
          local node_arguments = node.arguments
          n = #node_arguments
+         aliases = {}
          for i = 1, n do
             local expr = node_arguments[i]
             local expr_type = expr.type
@@ -279,11 +283,14 @@ local function parse_aliases(info)
                aliases[i] = toLua(expr)
             end
          end
-         return "stop"
+
+         if name == "ic" then
+            return "stop"
+         end
       end
    end)
 
-   return n > 0 and aliases or nil, n
+   return aliases, n
 end
 
 -- endregion

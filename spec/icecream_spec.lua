@@ -95,6 +95,13 @@ describe("IceCream", function()
       assert.string_match(s, pattern)
    end)
 
+   it("ic alias", function()
+      local x = 42
+      local dbg = ic
+      local s = dbg:format(x)
+      assert.string_match(s, "^ic| spec/icecream_spec%.lua:%d+: x = 42$")
+   end)
+
    it("ic.traceback", function()
       local expected = "hello"
       ic.traceback = function()
