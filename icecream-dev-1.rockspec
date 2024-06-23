@@ -22,7 +22,7 @@ description = {
       It enhances print debugging by providing more informative and visually appealing output for Lua applications.
       Say goodbye to traditional print statements and embrace a better way to debug your code.
    ]],
-   homepage = "https://github.com/jeffzi/luamark",
+   homepage = "https://github.com/jeffzi/icecream.lua",
    license = "MIT",
 }
 
