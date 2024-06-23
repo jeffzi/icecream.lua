@@ -254,6 +254,10 @@ setmetatable(cache, { __mode = "kv" })
 ---@return string
 local function read_source(info)
    local filename = info.source:sub(2) -- Remove the '@' prefix
+   if filename == "(tail call)" then
+      error("Cannot use IceCream as a return value")
+   end
+
    local start_line = info.linedefined
    local end_line = info.lastlinedefined
 

@@ -229,4 +229,12 @@ describe("IceCream", function()
          end, opt .. " option cannot be set to nil.")
       end
    end)
+
+   if _VERSION == "LUA 5.1" then
+      it("tail call", function()
+         assert.has_error(function()
+            return ic("tailcall")
+         end, "Cannot use IceCream as a return value")
+      end)
+   end
 end)
