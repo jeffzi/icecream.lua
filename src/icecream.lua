@@ -51,6 +51,7 @@ stderr:setvbuf("no")
 -- region Config
 
 local config = {
+   enabled = false, -- IceCream:enable() will turn this on later if NO_ICECREAM is not set.
    indent = "  ",
    color = true,
    include_context = true,
@@ -400,7 +401,7 @@ end
 ---@vararg any Argument(s) to print
 ---@return ... The argument(s) passed to ic
 function IceCream:ic(...)
-   if self.enabled then
+   if config.enabled then
       local output = self:_format(...)
       config.output_function(output .. "\n")
    end
@@ -409,12 +410,12 @@ end
 
 function IceCream:enable()
    if not is_env_set("NO_ICECREAM") then
-      self.enabled = true
+      config.enabled = true
    end
 end
 
 function IceCream:disable()
-   self.enabled = false
+   config.enabled = false
 end
 
 local mt = {
