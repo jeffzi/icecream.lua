@@ -115,6 +115,8 @@ do
 
    local has_ansicolors, ansicolors = pcall(require, "ansicolors")
 
+   ---@param color string
+   ---@return fun(s: string): string
    local function colorizer(color)
       if has_ansicolors and config.color then
          return function(s)
@@ -152,6 +154,9 @@ do
 end
 
 local INSPECT_KEY = inspect.KEY
+---@param item string
+---@param path string[]
+---@return string
 local function tag_key(item, path)
    if type(item) ~= "number" and path[#path] == INSPECT_KEY and not match(item, "^__") then
       return "@" .. item .. "@"
@@ -159,10 +164,13 @@ local function tag_key(item, path)
    return item
 end
 
+---@param s string
 local function should_wrap(s)
    return #gsub(s, "\27%[%d+m", "") > get_termsize()
 end
 
+---@param s string
+---@param process? function
 local function wrap(s, process)
    local original = s
    local options = { newline = " ", indent = "" }
@@ -185,6 +193,8 @@ local function wrap(s, process)
    return s
 end
 
+---@param s any
+---@return string
 function IceCream:_prettify(s)
    if not config.color then
       return wrap(s)
@@ -334,6 +344,8 @@ end
 
 local INFO_LEVEL = (_VERSION == "Lua 5.1" and not jit) and 3 or 2
 
+---@vararg any
+---@return string
 function IceCream:_format(...)
    local info = getinfo(INFO_LEVEL, "Sln")
    if info.short_src == "[C]" or info.namewhat == "upvalue" then
@@ -395,7 +407,7 @@ end
 
 --- Format its arguments for debugging purposes.
 ---@vararg any Argument(s) to format
----@return ... The argument(s) passed to format
+---@return string
 function IceCream:format(...)
    return self:_format(...)
 end
@@ -411,12 +423,14 @@ function IceCream:ic(...)
    return ...
 end
 
+--- Enable IceCream debugging output, if environment variable NO_ICECREAM is not set.
 function IceCream:enable()
    if not is_env_set("NO_ICECREAM") then
       config.enabled = true
    end
 end
 
+--- Disable IceCream debugging output.
 function IceCream:disable()
    config.enabled = false
 end
