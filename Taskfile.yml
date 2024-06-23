@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: "3"
+
+silent: true
+
+tasks:
+  default:
+    desc: Benchmark all frameworks and export the plots.
+    cmds:
+      - task: deps
+      - task: lint
+      - task: test
+      - task: install
+
+  deps:
+    desc: Install lua dev dependencies.
+    cmds:
+      - luarocks list --porcelain luasystem | grep -q "installed" || luarocks install luasystem
+      - luarocks list --porcelain busted | grep -q "installed" || luarocks install busted
+      - luarocks list --porcelain luacheck | grep -q "installed" || luarocks install luacheck
+      - luarocks list --porcelain luacov | grep -q "installed" || luarocks install https://raw.githubusercontent.com/lunarmodules/luacov/master/luacov-scm-1.rockspec
+      - luarocks list --porcelain luacov-console | grep -q "installed" || luarocks install luacov-console
+    preconditions:
+      - sh: luarocks --version
+        msg: luarocks not found, please install it (https://luarocks.org/ or https://github.com/luarocks/hererocks)
+
+  install:
+    desc: Install dev version using LuaRocks
+    deps: [deps]
+    cmds:
+      - luarocks make
+
+  test:
+    desc: Run the test suite using Busted
+    deps:
+      - deps
+      - install
+    cmds:
+      - busted
+      - mv luacov_report.html luacov_report.html.bak
+      - luacov-console src
+      - luacov-console --summary
+      - mv luacov_report.html.bak luacov_report.html
+
+  lint:
+    desc: Run linters using pre-commit
+    cmds:
+      - pre-commit install
+      - pre-commit run --all-files
+    preconditions:
+      - sh: pre-commit --version
+        msg: pre-commit not found, please install it (https://pre-commit.com/).
