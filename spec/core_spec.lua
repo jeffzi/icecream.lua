@@ -244,4 +244,15 @@ describe("IceCream", function()
          end, "Cannot use IceCream as a return value")
       end)
    end
+
+   it("lua -e", function()
+      local command = [[NO_COLOR=1 lua -e 'local ic = require("src.icecream"); ic(1, 2)']]
+
+      local handle = io.popen(command .. " 2>&1")
+      local result = assert.is_not_nil(handle:read("*a"))
+      local success, _, _ = handle:close()
+
+      assert.is_true(success)
+      assert.string_match(result, "^ic| 1, 2\n$")
+   end)
 end)

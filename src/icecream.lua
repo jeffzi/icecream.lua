@@ -30,15 +30,18 @@ local IceCream = {
    ]],
 }
 
-local parser = require("dumbParser")
-local toLua, parse, traverseTree = parser.toLua, parser.parse, parser.traverseTree
-
 local getinfo = debug.getinfo
 local gsub = string.gsub
 local match = string.match
 local stderr = io.stderr
 local tconcat = table.concat
 local tinsert = table.insert
+
+local has_parser, parser = pcall(require, "dumbParser")
+local toLua, parse, traverseTree
+if has_parser then
+   toLua, parse, traverseTree = parser.toLua, parser.parse, parser.traverseTree
+end
 
 local has_stack_trace_plus, stp = pcall(require, "StackTracePlus")
 local traceback = has_stack_trace_plus and stp.stacktrace or debug.traceback
@@ -354,21 +357,27 @@ function IceCream:_format(level, ...)
       info = getinfo(level + 1, "Sln")
    end
 
-   local location = info.short_src .. ":" .. info.currentline
-   local header = config.prefix
+   local short_src = info.short_src
+   local should_parse = has_parser and short_src ~= "stdin" and short_src ~= "(command line)"
 
-   if config.include_context then
-      if header ~= "" then
-         header = header .. " "
-      end
-      header = header .. location
+   local prefix = config.prefix
+
+   local location = ""
+   if config.include_context and should_parse then
+      location = short_src .. ":" .. info.currentline
 
       local fn_name = info.name
       if fn_name then
-         header = header .. " <" .. fn_name .. ">"
-      else
-         header = header .. ":"
+         location = location .. " <" .. fn_name .. ">"
       end
+      location = location .. ":"
+   end
+
+   local header
+   if prefix == "" or location == "" then
+      header = prefix .. location
+   else
+      header = prefix .. " " .. location
    end
    header = self.format_header(header)
 
@@ -380,15 +389,21 @@ function IceCream:_format(level, ...)
       return header
    end
 
-   local keys, key_count = parse_aliases(info)
-   if not "keys" or key_count ~= select("#", ...) then
-      error("Failed to parse arguments from source " .. location)
+   local keys, key_count
+   if should_parse then
+      keys, key_count = parse_aliases(info)
+      if not "keys" or key_count ~= select("#", ...) then
+         error("Failed to parse arguments from source " .. location)
+      end
+   else
+      key_count = select("#", ...)
    end
 
    local pretty_args = {}
    for i = 1, key_count do
       ---@cast keys string[]
-      local key, value = keys[i], select(i, ...)
+      local key = should_parse and keys[i] or nil
+      local value = select(i, ...)
 
       if not key or key == tostring(value) then
          key = ""

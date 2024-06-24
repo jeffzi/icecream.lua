@@ -45,12 +45,12 @@ luarocks install luamark
 `icecream.lua` is a single file that can be easily integrated into your project.
 Simply download icecream.lua and include it in your project directory.
 
-Ensure that the required dependencies are also available:
+Ensure that optional dependencies are also available if you want extra features:
 
-- **[dumbParser](https://github.com/ReFreezed/DumbLuaParser/blob/master/dumbParser.lua):** required
-- **[ansicolors](https://github.com/kikito/ansicolors.lua):** Mandatory for enabling colored output.
-- **[inspect](https://github.com/kikito/inspect.lua):** Recommended for pretty-printing tables.
-- **[luasystem](https://github.com/lunarmodules/luasystem):** Adds terminal width detection and consistent environment variable reading on Windows.
+- **[dumbParser](https://github.com/ReFreezed/DumbLuaParser/blob/master/dumbParser.lua):** introspecting expressions and variable names (e.g: `ic| x = 42`)
+- **[ansicolors](https://github.com/kikito/ansicolors.lua):** Enabling colored output.
+- **[inspect](https://github.com/kikito/inspect.lua):** Pretty-printing tables.
+- **[luasystem](https://github.com/lunarmodules/luasystem):** Terminal width detection and consistent environment variable reading on Windows.
 
 ## Usage
 
