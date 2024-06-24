@@ -28,7 +28,11 @@ description = {
 
 dependencies = {
    "lua >= 5.1",
+   -- optional
+   "ansicolors >= 1.0.2",
    "dumbluaparser >= 2.3",
+   "inspect >= 3.1.3",
+   "luasystem >= 0.4.0",
 }
 
 build = {
