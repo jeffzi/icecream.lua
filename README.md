@@ -151,6 +151,20 @@ ic.traceback = function() end        -- Custom traceback function (can be nil), 
 ic.output_function = function() end  -- Custom output function, e.g., write to a file.
 ```
 
+## Usage without `require`
+
+To make `ic()` available globally without needing to import it in every file, you can use the `ic:export()` method.
+
+You can also leverage the [`LUA_INIT`](https://www.lua.org/manual/5.1/lua.html) environment variable
+to automatically call `ic:export()` when Lua starts. This ensures that ic is globally available in
+all your Lua scripts.
+
+For example, add this to your `.bashrc`:
+
+```bash
+export LUA_INIT="local ok, ic = pcall(require, 'icecream'); if ok then ic:export() end"
+```
+
 ## Dynamic Enabling/Disabling
 
 You can enable or disable the printing of debugging output dynamically using `ic.enable()` and `ic.disable()`.

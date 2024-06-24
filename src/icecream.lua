@@ -457,6 +457,10 @@ function IceCream:disable()
    config.enabled = false
 end
 
+function IceCream:export()
+   _G.ic = self
+end
+
 local mt = {
    __index = function(_, k)
       return config[k]
