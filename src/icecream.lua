@@ -361,13 +361,13 @@ function IceCream:_format(level, ...)
       info = getinfo(level + 1, "Sln")
    end
 
-   local short_src = info.short_src
-   local should_parse = has_parser and short_src ~= "stdin" and short_src ~= "(command line)"
-
    local prefix = config.prefix
 
+   local short_src = info.short_src
+   local has_source = short_src ~= "stdin" and short_src ~= "(command line)"
+
    local location = ""
-   if config.include_context and should_parse then
+   if config.include_context and has_source then
       location = short_src .. ":" .. info.currentline
 
       local fn_name = info.name
@@ -393,6 +393,7 @@ function IceCream:_format(level, ...)
       return header
    end
 
+   local should_parse = has_parser and has_source
    local keys, key_count
    if should_parse then
       keys, key_count = parse_aliases(info)
