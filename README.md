@@ -15,22 +15,21 @@ Use `ic()` just like you would use `print()` for debugging:
 local ic = require("icecream")
 
 local foo = function()
-    local x = 42
-    ic("bar", x, math.abs(-9), {
-        greetings = "hello",
-        __call = function(self)
-            print(self.greetings)
-        end,
-    })
-    end
+   local x = 42
+   ic("bar", x, math.abs(-9), {
+      greetings = "hello",
+      __call = function(self)
+         print(self.greetings)
+      end,
+   })
 end
 
 foo()
 ```
 
-Output (with default settings):
+Output:
 
-![demo](demo.png)
+![](demo.png)
 
 ## Installation
 
@@ -67,22 +66,28 @@ The result of `require` must be assigned to a variable named `ic` for maximum ro
    Use `ic()` just like you would use `print()` for debugging:
 
    ```lua
-   local foo = function()
-       local x = 42
-       ic(x)
-   end
+    local ic = require("icecream")
 
-   foo()
-   -- Output: ic| readme.lua:5 <foo> x = 42
+    local foo = function()
+       local x = -42
+       ic(math.abs(x))
+    end
+
+    foo()
+    -- Output: ic| readme.lua:5 <foo>: math.abs(x) = 42
    ```
 
-Output format:
+<img src="basic_example.png" width="400">
+
+3. **Output format**:
 
 - **Inspection:** `ic()` inspects itself and prints both its own arguments and the values of those arguments. Each argument is pretty-printed, [`inspect`](https://github.com/kikito/inspect.lua) is required to pretty-print tables.
 
 - **Context**: By default, each output is prefixed with the file, line number and function where `ic` was called.
 
 - **Color:** The output is highlighted if [`ansicolors`](https://github.com/kikito/ansicolors.lua) is installed .
+
+- **Multi-lines:**: The output is automatically wrapped over multiple lines as needed.
 
 - **Stack traceback:** Without arguments, `ic()` will print a stack traceback.
 
@@ -94,11 +99,12 @@ local function foo()
 end
 
 foo()
--- ic| readme.lua:4 <foo>
+-- Output:
+-- ic| readme.lua:4 <foo>:
 -- stack traceback:
--- 	readme.lua:4: in function 'foo'
--- 	readme.lua:7: in main chunk
--- 	[C]: ?
+-- 	    readme.lua:4: in function 'foo'
+-- 	    readme.lua:7: in main chunk
+-- 	    [C]: ?
 ```
 
 IceCream has additional support for [`StackTracePlus`](https://github.com/ignacio/StackTracePlus).
@@ -177,7 +183,7 @@ This results in certain limitations on what IceCream can achieve:
   tostring(dbg({ hello = "world" }))
   ```
 
-- **Single Call Limitation:** Only one call to `ic:format()` or `ic()` is allowed per line of code.
+- **Single Call Limitation:** Only one call to `ic:format()` or `ic()` is supported per line of code.
 
   ```lua
     local ic = require("icecream")
