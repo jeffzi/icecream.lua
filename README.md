@@ -162,7 +162,7 @@ all your Lua scripts.
 For example, add this to your `.bashrc`:
 
 ```bash
-export LUA_INIT="local ok, ic = pcall(require, 'icecream'); if ok then ic:export() end"
+export LUA_INIT="local ok, ic = pcall(require, 'icecream'); if ok and type(ic.export) == 'function' then ic:export() end"
 ```
 
 ## Dynamic Enabling/Disabling
