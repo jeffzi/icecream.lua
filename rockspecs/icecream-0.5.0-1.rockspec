@@ -2,7 +2,7 @@ rockspec_format = "3.0"
 
 package = "icecream"
 
-local package_version = "dev"
+local package_version = "0.5.0"
 local rockspec_revision = "1"
 
 version = package_version .. "-" .. rockspec_revision
