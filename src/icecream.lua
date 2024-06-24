@@ -132,6 +132,10 @@ do
    end
 
    function IceCream:_configure_color()
+      if config.color and not has_ansicolors then
+         config.color = false
+      end
+
       IceCream.format_boolean = colorizer("yellow")
       IceCream.format_bracket = colorizer("bright white")
       IceCream.format_header = colorizer("underline white")
@@ -174,7 +178,7 @@ end
 
 ---@param s string
 ---@param process? function
-local function wrap(s, process)
+local function wrap_table(s, process)
    local original = s
    local options = { newline = " ", indent = "" }
    options.process = process
@@ -199,10 +203,6 @@ end
 ---@param s any
 ---@return string
 function IceCream:_prettify(s)
-   if not config.color then
-      return wrap(s)
-   end
-
    local type_ = type(s)
    if type_ == "string" then
       return self.format_string('"' .. s .. '"')
@@ -215,7 +215,11 @@ function IceCream:_prettify(s)
    end
 
    -- Formatting a table
-   s = wrap(s, tag_key)
+   if not config.color then
+      return wrap_table(s)
+   end
+
+   s = wrap_table(s, tag_key)
    s = gsub(s, '%["@(.-)@"%]', self.format_key)
    s = gsub(s, "(%[%d*%])(%s=)", function(index, post)
       return self.format_key(index) .. post
