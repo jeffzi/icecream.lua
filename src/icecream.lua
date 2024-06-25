@@ -1,6 +1,6 @@
 ---@class IceCream
 local IceCream = {
-   _VERSION = "0.5.0",
+   _VERSION = "0.5.1",
    _DESCRIPTION = [[
       IceCream — Never use print() to debug again. A Lua port of the Python IceCream library."
    ]],

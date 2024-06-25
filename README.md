@@ -6,7 +6,8 @@
 # icecream.lua
 
 `icecream.lua`, a port of the debugging utility [IceCream](https://github.com/gruns/icecream),
-enhances print debugging by providing more informative and visually appealing output for Lua applications.
+enhances print debugging by providing more informative and visually appealing output.
+
 Use `ic()` just like you would use `print()` for debugging:
 
 ```lua
