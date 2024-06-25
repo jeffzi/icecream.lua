@@ -5,10 +5,8 @@
 
 # icecream.lua
 
-`icecream.lua` is a port of the debugging utility [IceCream](https://github.com/gruns/icecream).
-It enhances print debugging by providing more informative and visually appealing output for Lua applications.
-Say goodbye to traditional print statements and embrace a better way to debug your code.
-
+`icecream.lua`, a port of the debugging utility [IceCream](https://github.com/gruns/icecream),
+enhances print debugging by providing more informative and visually appealing output for Lua applications.
 Use `ic()` just like you would use `print()` for debugging:
 
 ```lua
@@ -42,11 +40,11 @@ luarocks install luamark
 ### Manual Installation
 
 `icecream.lua` is a single file that can be easily integrated into your project.
-Simply download icecream.lua and include it in your project directory.
+Download icecream.lua and include it in your project directory.
 
-Ensure that optional dependencies are also available if you want extra features:
+Ensure that optional dependencies are available for extra features:
 
-- **[dumbParser](https://github.com/ReFreezed/DumbLuaParser/blob/master/dumbParser.lua):** introspecting expressions and variable names (e.g: `ic| x = 42`)
+- **[dumbParser](https://github.com/ReFreezed/DumbLuaParser/blob/master/dumbParser.lua):** Introspecting expressions and variable names. e.g: `ic| x = 42`
 - **[ansicolors](https://github.com/kikito/ansicolors.lua):** Enabling colored output.
 - **[inspect](https://github.com/kikito/inspect.lua):** Pretty-printing tables.
 - **[luasystem](https://github.com/lunarmodules/luasystem):** Terminal width detection and consistent environment variable reading on Windows.
@@ -59,11 +57,11 @@ Ensure that optional dependencies are also available if you want extra features:
    local ic = require("icecream")
    ```
 
-The result of `require` must be assigned to a variable named `ic` for maximum robustness when introspecting.
+Assign the result of require to a variable named `ic` to increase robustness when introspecting.
 
 2. **Debugging with `ic()`:**
 
-   Use `ic()` just like you would use `print()` for debugging:
+   Use `ic()` as you would use `print()` for debugging:
 
    ```lua
     local ic = require("icecream")
@@ -81,15 +79,15 @@ The result of `require` must be assigned to a variable named `ic` for maximum ro
 
 3. **Output format**:
 
-- **Inspection:** `ic()` inspects itself and prints both its own arguments and the values of those arguments. Each argument is pretty-printed, [`inspect`](https://github.com/kikito/inspect.lua) is required to pretty-print tables.
+- **Inspection:** `ic()` inspects itself and prints both its arguments and their values.
 
-- **Context**: By default, each output is prefixed with the file, line number and function where `ic` was called.
+- **Context**: Each output includes the file, line number, and function.
 
-- **Color:** The output is highlighted if [`ansicolors`](https://github.com/kikito/ansicolors.lua) is installed .
+- **Color:** The output features highlighting.
 
-- **Multi-lines:**: The output is automatically wrapped over multiple lines as needed.
+- **Multi-lines:**: The output wraps on new lines as needed.
 
-- **Stack traceback:** Without arguments, `ic()` will print a stack traceback.
+- **Stack traceback:** Without arguments, `ic()` prints the stack traceback.
 
 ```lua
 local ic = require("icecream")
@@ -107,8 +105,8 @@ foo()
 -- 	    [C]: ?
 ```
 
-IceCream has additional support for [`StackTracePlus`](https://github.com/ignacio/StackTracePlus).
-With StackTracePlus installed, the previous snippet will output:
+IceCream supports [`StackTracePlus`](https://github.com/ignacio/StackTracePlus).
+With StackTracePlus, the previous snippet outputs:
 
 ```
 ic| readme.lua:4 <foo>
@@ -124,7 +122,7 @@ Stack Traceback
 
 ## Returning the arguments
 
-`ic()` returns its argument(s), so it can easily be inserted into pre-existing code.
+`ic()` returns its arguments, so you can easily insert it into pre-existing code.
 
 ```lua
 local ic = require("icecream")
@@ -137,13 +135,13 @@ local t = { "hello" }
 assert(t == ic(t))
 ```
 
-## Customization
+## Customize
 
-IceCream allows customization of its output behavior through configuration options:
+IceCream allows customization of its output behavior:
 
 ```lua
 ic.color = false                     -- Disable colorized output.
-ic.max_width = 100                   -- Wrap text to new lines if longer than 100 characters.
+ic.max_width = 100                   -- Wrap text if longer than 100 characters.
 ic.indent = "    "                   -- Indent with 4 spaces.
 ic.prefix = "DEBUG"                  -- Change the prefix from 'ic|' to 'DEBUG'.
 ic.include_context = false           -- Disable file name, line number, and function name output.
@@ -151,41 +149,37 @@ ic.traceback = function() end        -- Custom traceback function (can be nil), 
 ic.output_function = function() end  -- Custom output function, e.g., write to a file.
 ```
 
+When the following environment variables are present and not empty strings:
+
+- [`NO_COLOR`](https://no-color.org/): Prevents ANSI color when present.
+- `NO_ICECREAM`: Disables ic outputs permanently if not an empty string
+
 ## Usage without `require`
 
-To make `ic()` available globally without needing to import it in every file, you can use the `ic:export()` method.
+To make `ic()` available globally, without require, use the `ic:export()` method.
 
-You can also leverage the [`LUA_INIT`](https://www.lua.org/manual/5.1/lua.html) environment variable
-to automatically call `ic:export()` when Lua starts. This ensures that ic is globally available in
-all your Lua scripts.
+The [`LUA_INIT`](https://www.lua.org/manual/5.1/lua.html) environment variable allows invocation of
+`ic:export()` when Lua starts, ensuring global availability of `ic`.
 
 For example, add this to your `.bashrc`:
 
 ```bash
-export LUA_INIT="local ok, ic = pcall(require, 'icecream'); if ok and type(ic.export) == 'function' then ic:export() end"
+export LUA_INIT="local ok, ic = pcall(require, 'icecream'); if ok and ic.export then ic:export() end"
 ```
 
-## Dynamic Enabling/Disabling
+## Activate/deactivate dynamically
 
-You can enable or disable the printing of debugging output dynamically using `ic.enable()` and `ic.disable()`.
-Debugging output can also be permanently disabled by setting the environment variable `NO_ICECREAM`.
-
-## Environment Variables
-
-- [`NO_COLOR`](https://no-color.org/): When present and not an empty string, prevents the addition of ANSI color.
-- `NO_ICECREAM`: When present and not an empty string, permanently disables `ic` outputs even if `ic.enable()` is called.
+Activate or deactivate debugging output dynamically with `ic.enable()` and `ic.disable()`. Set the environment variable `NO_ICECREAM` to disable outputs permanently.
 
 ## ic:format()
 
-`ic:format()` is the same as calling `ic()` but returns a string rather than printing the output.
+`ic:format()` works like ic() but returns a string instead of printing the output.
 
 ## Limitations
 
-IceCream relies on `debug.getinfo`, which provides partial information about function calls.
-This results in certain limitations on what IceCream can achieve:
+IceCream relies on `debug.getinfo`, which provides partial information about function calls, resulting in some limitations:
 
-- **Naming Convention:** The result of `require` must be assigned to a variable named `ic` for maximum robustness.
-  While not mandatory, nested calls might not be properly detected otherwise.
+- **Naming Convention:** Assign the result of require to a variable named ic for robustness. While not mandatory, `ic` might not detect nested calls otherwise.
 
   ```lua
   local dbg = require("icecream")
@@ -197,7 +191,7 @@ This results in certain limitations on what IceCream can achieve:
   tostring(dbg({ hello = "world" }))
   ```
 
-- **Single Call Limitation:** Only one call to `ic:format()` or `ic()` is supported per line of code.
+- **Single Call Limitation:** `ic` only supports one `ic:format()` or `ic()` per line of code.
 
   ```lua
     local ic = require("icecream")
@@ -206,7 +200,7 @@ This results in certain limitations on what IceCream can achieve:
 
   ```
 
-- **Return Value Restriction:** In _Lua 5.1_, `ic:format()` or `ic()` cannot be directly used as return values from functions.
+- **Return Value Restriction:** In _Lua 5.1_, `ic:format()` or `ic()` can't be directly used as return values from functions.
 
   ```lua
   local ic = require("icecream")
@@ -219,8 +213,8 @@ This results in certain limitations on what IceCream can achieve:
 
 ## License
 
-`icecream.lua` is licensed under the MIT License. See [LICENSE](LICENSE) for more information.
+`icecream.lua` has the MIT License. See [LICENSE](LICENSE) for more information.
 
 ## Acknowledgments
 
-This Lua port is based on the original IceCream Python library by [Grun](https://github.com/gruns/icecream).
+This project is a port of the original [IceCream](https://github.com/gruns/icecream) by [gruns](https://github.com/gruns).
