@@ -357,7 +357,7 @@ end
 ---@return string
 function IceCream:_format(level, ...)
    local info = getinfo(level, "Sln")
-   if info.namewhat == "upvalue" then
+   if info.namewhat == "[C]" then
       info = getinfo(level + 1, "Sln")
    end
 
