@@ -1,0 +1,10 @@
+ansicolors
+dumbParser
+Grun
+Lua
+Luacheck
+LuaRocks
+luasystem
+ic
+traceback
+getinfo
