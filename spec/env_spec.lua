@@ -1,8 +1,6 @@
 local sys = require("system")
-local function require_uncached(module_name)
-   package.loaded[module_name] = nil
-   return require(module_name)
-end
+local utils = require("spec.utils")
+local require_uncached = utils.require_uncached
 
 describe("environment", function()
    before_each(function()

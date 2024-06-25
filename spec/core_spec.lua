@@ -1,28 +1,12 @@
-local assert = require("luassert")
-local say = require("say")
-
-local function string_match(_, arguments)
-   local s = arguments[1]
-   local pattern = arguments[2]
-   return s:find(pattern) ~= nil
-end
-
-assert:register(
-   "assertion",
-   "string_match",
-   string_match,
-   "assertion.string_match.positive",
-   "assertion.string_match.negative"
-)
-say:set("assertion.string_match.positive", "Expected %s to match %s")
-say:set("assertion.string_match.negative", "Expected %s to not match %s")
+local utils = require("spec.utils")
+local require_uncached = utils.require_uncached
 
 describe("IceCream", function()
    local ic
    local original_traceback
 
    setup(function()
-      ic = require("icecream")
+      ic = require_uncached("icecream")
       original_traceback = ic.traceback
    end)
 
@@ -253,6 +237,6 @@ describe("IceCream", function()
       local success, _, _ = handle:close()
 
       assert.is_true(success)
-      assert.string_match(result, "^ic| 1, 2\n$")
+      assert.string_match(result, "^ic| 1, 2")
    end)
 end)

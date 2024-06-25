@@ -1,9 +1,14 @@
-require("spec.string_match")
+local utils = require("spec.utils")
+local require_uncached = utils.require_uncached
 
 describe("optional dependencies", function()
    local ic
+   local original_require
+
    setup(function()
-      local original_require = require
+      original_require = require
+
+      -- prevent from loading optional dependencies
       _G.require = function(module_name)
          if
             module_name == "ansicolors"
@@ -17,7 +22,11 @@ describe("optional dependencies", function()
          end
       end
 
-      ic = require("icecream")
+      ic = require_uncached("icecream")
+   end)
+
+   teardown(function()
+      _G.require = original_require
    end)
 
    it("no color", function()
