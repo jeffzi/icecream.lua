@@ -269,9 +269,9 @@ local function read_source(info)
    local end_line = info.lastlinedefined
 
    if start_line == 0 then
-      -- source is not in a function
+      -- source is not nested in a function
       start_line = info.currentline
-      end_line = start_line
+      end_line = math.huge
    end
 
    local cached_file = cache[filename]
@@ -311,6 +311,7 @@ local function parse_aliases(info)
    local relative_line = linedefined > 0 and info.currentline - linedefined + 1 or 1
 
    local ast = parse(source)
+   print(source, inspect(info), relative_line)
    local aliases
    local call_count = 0
    local n = 0

@@ -238,14 +238,17 @@ describe("IceCream", function()
       end)
    end
 
-   it("lua -e", function()
-      local command = [[NO_COLOR=1 lua -e 'local ic = require("src.icecream"); ic(1, 2)']]
+   it("multiple lines with comment", function()
+      local command = [[NO_COLOR=1 lua -e 'local ic = require("src.icecream"); ic(1,
+      -- 2,
+      3)']]
+      print(command)
 
       local handle = io.popen(command .. " 2>&1")
       local result = assert.is_not_nil(handle:read("*a"))
       local success, _, _ = handle:close()
 
       assert.is_true(success)
-      assert.string_match(result, "^ic| 1, 2")
+      assert.string_match(result, "^ic| 1, 3")
    end)
 end)
