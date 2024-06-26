@@ -332,7 +332,7 @@ local function parse_aliases(info)
          for i = 1, n do
             local expr = node_arguments[i]
             local expr_type = expr.type
-            if expr_type == "identifier" or expr_type == "call" then
+            if expr_type ~= "literal" and expr_type ~= "function" and expr_type ~= "table" then
                aliases[i] = toLua(expr)
             end
          end

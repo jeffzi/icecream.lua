@@ -1,7 +1,9 @@
 local utils = require("spec.utils")
 local require_uncached = utils.require_uncached
+local is_luajit, ffi = pcall(require, "ffi")
 
 describe("IceCream", function()
+   local HEADER = "^ic| spec/core_spec%.lua:%d+: "
    local ic
    local original_traceback
 
@@ -14,7 +16,7 @@ describe("IceCream", function()
       ic.prefix = "ic|"
       ic.color = false
       ic.include_context = true
-      ic.max_width = 80
+      ic.max_width = 1000
       ic.indent = "  "
       ic.traceback = original_traceback
       ic:enable()
@@ -32,30 +34,53 @@ describe("IceCream", function()
       assert.string_match(s, "^ic| spec/core_spec%.lua:")
    end)
 
-   it("ic(9.9, true, 'foo', function() end)", function()
-      local s = ic:format(9.9, true, "foo", function() end)
-      assert.string_match(s, '^ic| spec/core_spec%.lua:%d+: 9.9, true, "foo", <function %d+>$')
+   it("types", function()
+      local t = { x = 1 }
+      local arr = { 1, 2 }
+      local function foo() end
+      local s = ic:format(9.9, true, "foo", t, { x = 1 }, arr, { 1, 2 }, function() end, foo)
+      local args = {
+         "9.9",
+         "true",
+         '"foo"',
+         "t = { x = 1 }",
+         "{ x = 1 }",
+         "arr = { 1, 2 }",
+         "{ 1, 2 }",
+         "<function %d+>",
+         "foo = <function %d+>$",
+      }
+      assert.string_match(s, HEADER .. table.concat(args, ", "))
    end)
+
+   if is_luajit then
+      it("ffi", function()
+         local s = ic:format(ffi.new("int", 1), ffi.typeof("int"), ffi.typeof("int")(1))
+         local args = {
+            'ffi%.new%("int",1%) = cdata<int>: 0x%x+',
+            'ffi%.typeof%("int"%) = ctype<int>',
+            'ffi%.typeof%("int"%)%(1%) = cdata<int>: 0x%x+',
+         }
+         assert.string_match(s, HEADER .. table.concat(args, ", "))
+      end)
+   end
 
    it("ic(x, y, z)", function()
       local x, y, z = 1, 2, 3
       local s = ic:format(x, y, z)
-      assert.string_match(s, "^ic| spec/core_spec%.lua:%d+: x = 1, y = 2, z = 3$")
+      assert.string_match(s, HEADER .. "x = 1, y = 2, z = 3$")
    end)
 
    it("ic(math.abs(x))", function()
       local x = 42
       local s = ic:format(math.abs(x))
-      assert.string_match(s, "^ic| spec/core_spec%.lua:%d+: math%.abs%(x%) = 42$")
+      assert.string_match(s, HEADER .. "math%.abs%(x%) = 42$")
    end)
 
    it("ic({ _true = false, __call = function() end})", function()
       local x = { _true = false, __call = function() end }
       local s = ic:format(x)
-      assert.string_match(
-         s,
-         "^ic| spec/core_spec%.lua:%d+: x = { __call = <function %d+>, _true = false }$"
-      )
+      assert.string_match(s, HEADER .. "x = { __call = <function %d+>, _true = false }$")
    end)
 
    local function count_lines(str)
@@ -94,15 +119,16 @@ describe("IceCream", function()
       local s = ic:format(9.9, true, "foo", t)
 
       local lines = {
-         "^ic| spec/core_spec%.lua:%d+:%s*\n",
-         "9%.9%s*\n",
-         "true%s*\n",
-         '"foo"%s*\n',
-         't = %{\n%["1"%] = "a",\n',
-         '%["2"%] = "aa"\n',
+         "^ic| spec/core_spec%.lua:%d+:",
+         "9%.9",
+         "true",
+         '"foo"',
+         "t = %{",
+         '%["1"%] = "a",',
+         '%["2"%] = "aa"',
          "%}%s*$",
       }
-      local pattern = table.concat(lines)
+      local pattern = table.concat(lines, "%s*\n")
 
       assert.string_match(s, pattern)
    end)
@@ -111,7 +137,7 @@ describe("IceCream", function()
       local x = 42
       local dbg = ic
       local s = dbg:format(x)
-      assert.string_match(s, "^ic| spec/core_spec%.lua:%d+: x = 42$")
+      assert.string_match(s, HEADER .. "x = 42$")
    end)
 
    it("passthrough", function()
@@ -185,26 +211,9 @@ describe("IceCream", function()
          x = { subx = -9 },
       })
 
+      -- luacheck: no max line length
       local expected = [[
-[0m[4m[37mic|[0m[0m
-  [0m[35m42[0m[0m
-  [0m[32m"foo"[0m[0m
-  [0m[33mfalse[0m[0m
-  [0m[1m[37m{[0m[0m
-    [0m[35m42[0m[0m, [0m[32m"foo"[0m[0m, [0m[33mfalse[0m[0m,
-    [0m[34m[0][0m[0m = [0m[36m<function 1>[0m[0m,
-    [0m[34m[9][0m[0m = [0m[32m"hello_true"[0m[0m,
-    [0m[34m_d[0m[0m = [0m[33mfalse[0m[0m,
-    [0m[34m_true[0m[0m = [0m[35m1[0m[0m,
-    [0m[34ma[0m[0m = [0m[32m"b"[0m[0m,
-    [0m[34max2[0m[0m = [0m[35m1[0m[0m,
-    [0m[34mb[0m[0m = [0m[35m1.1[0m[0m,
-    [0m[34mc[0m[0m = [0m[33mtrue[0m[0m,
-    [0m[34mx[0m[0m = [0m[1m[37m{[0m[0m
-      [0m[34msubx[0m[0m = [0m[35m-9[0m[0m
-    [0m[1m[37m}[0m[0m,
-    [0m[36m__call[0m[0m = [0m[36m<function 2>[0m[0m
-  [0m[1m[37m}[0m[0m
+[0m[4m[37mic|[0m[0m [0m[35m42[0m[0m, [0m[32m"foo"[0m[0m, [0m[33mfalse[0m[0m, [0m[1m[37m{[0m[0m [0m[35m42[0m[0m, [0m[32m"foo"[0m[0m, [0m[33mfalse[0m[0m, [0m[34m[0][0m[0m = [0m[36m<function 1>[0m[0m, [0m[34m[9][0m[0m = [0m[32m"hello_true"[0m[0m, [0m[34m_d[0m[0m = [0m[33mfalse[0m[0m, [0m[34m_true[0m[0m = [0m[35m1[0m[0m, [0m[34ma[0m[0m = [0m[32m"b"[0m[0m, [0m[34max2[0m[0m = [0m[35m1[0m[0m, [0m[34mb[0m[0m = [0m[35m1.1[0m[0m, [0m[34mc[0m[0m = [0m[33mtrue[0m[0m, [0m[34mx[0m[0m = [0m[1m[37m{[0m[0m [0m[34msubx[0m[0m = [0m[35m-9[0m[0m [0m[1m[37m}[0m[0m, [0m[36m__call[0m[0m = [0m[36m<function 2>[0m[0m [0m[1m[37m}[0m[0m
 ]]
       assert.spy(spy_output).was.returned_with(expected)
    end)
