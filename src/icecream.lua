@@ -136,13 +136,14 @@ do
          config.color = false
       end
 
-      IceCream.format_boolean = colorizer("yellow")
-      IceCream.format_bracket = colorizer("bright white")
-      IceCream.format_header = colorizer("underline white")
-      IceCream.format_key = colorizer("blue")
-      IceCream.format_misc = colorizer("cyan")
-      IceCream.format_number = colorizer("magenta")
-      IceCream.format_string = colorizer("green")
+      IceCream._format_boolean = colorizer("yellow")
+      IceCream._format_bracket = colorizer("bright white")
+      IceCream._format_header = colorizer("underline white")
+      IceCream._format_key = colorizer("blue")
+      IceCream._format_misc = colorizer("cyan")
+      IceCream._format_number = colorizer("magenta")
+      IceCream._format_address = colorizer("underline magenta")
+      IceCream._format_string = colorizer("green")
    end
 end
 
@@ -205,13 +206,13 @@ end
 function IceCream:_prettify(s)
    local type_ = type(s)
    if type_ == "string" then
-      return self.format_string('"' .. s .. '"')
+      return self._format_string('"' .. s .. '"')
    elseif type_ == "number" then
-      return self.format_number(s)
+      return self._format_number(s)
    elseif type_ == "boolean" then
-      return self.format_boolean(tostring(s))
+      return self._format_boolean(tostring(s))
    elseif type_ ~= "table" then
-      return self.format_misc(inspect(s))
+      return self._format_misc(inspect(s))
    end
 
    -- Formatting a table
@@ -220,28 +221,33 @@ function IceCream:_prettify(s)
    end
 
    s = wrap_table(s, tag_key)
-   s = gsub(s, '%["@(.-)@"%]', self.format_key)
+   s = gsub(s, '%["@(.-)@"%]', self._format_key)
    s = gsub(s, "(%[%d*%])(%s=)", function(index, post)
-      return self.format_key(index) .. post
+      return self._format_key(index) .. post
    end)
-   s = gsub(s, '%b""', self.format_string)
-   s = gsub(s, "%b''", self.format_string)
-   s = gsub(s, "%b<>", self.format_misc)
-   s = gsub(s, "(-?%d*%.?%d+)(%s*[,%}\n])", function(num, post)
-      return self.format_number(num) .. post
+   s = gsub(s, '%b""', self._format_string)
+   s = gsub(s, "%b''", self._format_string)
+   s = gsub(s, "cdata%b<>", self._format_misc)
+   s = gsub(s, "ctype%b<>", self._format_misc)
+   s = gsub(s, "%b<>", self._format_misc)
+   s = gsub(s, "(%s+-?%d*%.?%d+)(%s?[,%}\n]+)", function(num, post)
+      return self._format_number(num) .. post
    end)
-   s = gsub(s, "inf,", self.format_number)
+   s = gsub(s, "(0x%x+)([%s,%}\n]+)", function(hex, post)
+      return self._format_address(hex) .. post
+   end)
+   s = gsub(s, "inf,", self._format_number)
    s = gsub(s, "(=%s*)(true)", function(pre, bool)
-      return pre .. self.format_boolean(bool)
+      return pre .. self._format_boolean(bool)
    end)
    s = string.gsub(s, "(%f[%a]false%f[%A])", function(bool)
-      return self.format_boolean(bool)
+      return self._format_boolean(bool)
    end)
    s = gsub(s, "(__[a-z]+)(%s*=)", function(fn, pre)
       -- format metamethod
-      return self.format_misc(fn) .. pre
+      return self._format_misc(fn) .. pre
    end)
-   s = gsub(s, "([{}])", self.format_bracket)
+   s = gsub(s, "([{}])", self._format_bracket)
 
    return s
 end
@@ -311,7 +317,6 @@ local function parse_aliases(info)
    local relative_line = linedefined > 0 and info.currentline - linedefined + 1 or 1
 
    local ast = parse(source)
-   print(source, inspect(info), relative_line)
    local aliases
    local call_count = 0
    local n = 0
@@ -384,7 +389,7 @@ function IceCream:_format(level, ...)
    else
       header = prefix .. " " .. location
    end
-   header = self.format_header(header)
+   header = self._format_header(header)
 
    local arg_count = select("#", ...)
    if arg_count == 0 then
@@ -414,7 +419,7 @@ function IceCream:_format(level, ...)
       if not key or key == tostring(value) then
          key = ""
       else
-         key = self.format_key(key) .. " = "
+         key = self._format_key(key) .. " = "
       end
 
       pretty_args[i] = key .. self:_prettify(value)

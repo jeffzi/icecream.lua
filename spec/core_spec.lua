@@ -186,7 +186,7 @@ describe("IceCream", function()
       assert.spy(spy_output).was.called(1)
    end)
 
-   it("ic.color", function()
+   it("color", function()
       ic.color = true
       ic.include_context = false
 
@@ -201,7 +201,7 @@ describe("IceCream", function()
          false,
          [0] = function() end,
          ["a"] = "b",
-         ax2 = 1,
+         ax2 = 0x0104e1e258,
          b = 1.1,
          c = true,
          _d = false,
@@ -213,7 +213,7 @@ describe("IceCream", function()
 
       -- luacheck: no max line length
       local expected = [[
-[0m[4m[37mic|[0m[0m [0m[35m42[0m[0m, [0m[32m"foo"[0m[0m, [0m[33mfalse[0m[0m, [0m[1m[37m{[0m[0m [0m[35m42[0m[0m, [0m[32m"foo"[0m[0m, [0m[33mfalse[0m[0m, [0m[34m[0][0m[0m = [0m[36m<function 1>[0m[0m, [0m[34m[9][0m[0m = [0m[32m"hello_true"[0m[0m, [0m[34m_d[0m[0m = [0m[33mfalse[0m[0m, [0m[34m_true[0m[0m = [0m[35m1[0m[0m, [0m[34ma[0m[0m = [0m[32m"b"[0m[0m, [0m[34max2[0m[0m = [0m[35m1[0m[0m, [0m[34mb[0m[0m = [0m[35m1.1[0m[0m, [0m[34mc[0m[0m = [0m[33mtrue[0m[0m, [0m[34mx[0m[0m = [0m[1m[37m{[0m[0m [0m[34msubx[0m[0m = [0m[35m-9[0m[0m [0m[1m[37m}[0m[0m, [0m[36m__call[0m[0m = [0m[36m<function 2>[0m[0m [0m[1m[37m}[0m[0m
+[0m[4m[37mic|[0m[0m [0m[35m42[0m[0m, [0m[32m"foo"[0m[0m, [0m[33mfalse[0m[0m, [0m[1m[37m{[0m[0m[0m[35m 42[0m[0m, [0m[32m"foo"[0m[0m, [0m[33mfalse[0m[0m, [0m[34m[0][0m[0m = [0m[36m<function 1>[0m[0m, [0m[34m[9][0m[0m = [0m[32m"hello_true"[0m[0m, [0m[34m_d[0m[0m = [0m[33mfalse[0m[0m, [0m[34m_true[0m[0m =[0m[35m 1[0m[0m, [0m[34ma[0m[0m = [0m[32m"b"[0m[0m, [0m[34max2[0m[0m =[0m[35m 4376879704[0m[0m, [0m[34mb[0m[0m =[0m[35m 1.1[0m[0m, [0m[34mc[0m[0m = [0m[33mtrue[0m[0m, [0m[34mx[0m[0m = [0m[1m[37m{[0m[0m [0m[34msubx[0m[0m =[0m[35m -9[0m[0m [0m[1m[37m}[0m[0m, [0m[36m__call[0m[0m = [0m[36m<function 2>[0m[0m [0m[1m[37m}[0m[0m
 ]]
       assert.spy(spy_output).was.returned_with(expected)
    end)
