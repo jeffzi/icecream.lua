@@ -88,7 +88,6 @@ do
                return max_width
             end
             local _, cols = termsize()
-            print(cols)
             return cols
          end
       else
