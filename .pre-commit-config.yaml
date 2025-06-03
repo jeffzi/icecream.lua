@@ -7,7 +7,7 @@ ci:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: check-added-large-files
       - id: check-case-conflict
@@ -28,7 +28,7 @@ repos:
         args: ["--markdown-linebreak-ext=md,markdown"]
 
   - repo: https://github.com/JohnnyMorganz/StyLua
-    rev: v0.20.0
+    rev: v2.1.0
     hooks:
       - id: stylua-github
 
@@ -44,6 +44,6 @@ repos:
         args: [--prose-wrap=preserve, --print-width=100]
 
   - repo: https://github.com/errata-ai/vale
-    rev: v3.6.0
+    rev: v3.11.2
     hooks:
       - id: vale
