@@ -299,7 +299,13 @@ local function parse_aliases(info)
    local linedefined = info.linedefined
    local relative_line = linedefined > 0 and info.currentline - linedefined + 1 or 1
 
-   local ast = parse(source)
+   local ast, err = parse(source)
+
+   if err then
+      IceCream.output_function("Failed to parse IceCream arguments: " .. err .. "\n")
+      return nil, 0
+   end
+
    local aliases
    local call_count, argument_count = 0, 0
 

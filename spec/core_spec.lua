@@ -238,6 +238,40 @@ describe("IceCream", function()
       end)
    end
 
+   describe("parse error message", function()
+      local dumbParser, old_parse, fresh_ic, spy_output
+
+      setup(function()
+         dumbParser = require("dumbParser")
+         old_parse = dumbParser.parse
+         dumbParser.parse = function()
+            return nil, "Mock parse error"
+         end
+
+         fresh_ic = require_uncached("icecream")
+         fresh_ic.color = false
+
+         spy_output = spy.new(function(s)
+            return s
+         end)
+         fresh_ic.output_function = spy_output
+      end)
+
+      teardown(function()
+         dumbParser.parse = old_parse
+      end)
+
+      it("should show parse error message", function()
+         local formatted = fresh_ic:format("test", 1 + 2)
+         assert.string_match(formatted, 'spec/core_spec%.lua:%d+: "test", 3')
+
+         assert.spy(spy_output).was.called(1)
+         local err = spy_output.calls[1].refs[1]
+         print(err)
+         assert.string_match(err, "^Failed to parse IceCream arguments: Mock parse error\n")
+      end)
+   end)
+
    it("multiple lines with comment", function()
       local command = [[NO_COLOR=1 lua -e 'local ic = require("src.icecream"); ic(1,
       -- 2,
