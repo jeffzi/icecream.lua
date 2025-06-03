@@ -5,5 +5,6 @@
   "indent_size": "3",
   "workspace.ignoreDir": [".vscode"],
   "diagnostics": { "globals": ["jit"] },
-  "workspace.checkThirdParty": false
+  "workspace.checkThirdParty": false,
+  "workspace.library": ["${3rd}/luassert/library", "${3rd}/busted/library"]
 }
