@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        luaVersion: ["5.4", "5.3", "5.2", "5.1", "luajit"]
+        luaVersion: ["5.4", "5.3", "5.2", "5.1", "luajit-openresty"]
         os: [ubuntu-latest, macos-latest]
 
     runs-on: ${{ matrix.os }}
