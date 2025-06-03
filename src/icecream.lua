@@ -3,6 +3,15 @@
 -- Licensed under the MIT License
 
 ---@class IceCream
+---@field enabled boolean Enable or disable IceCream output
+---@field color boolean Enable colorized output
+---@field include_context boolean Include file name, line number, and function name in output
+---@field prefix string Prefix string for debug output
+---@field max_width integer? Maximum width before wrapping text
+---@field indent string Indentation string for multi-line output
+---@field traceback function? Custom traceback function, defaults to debug.traceback
+---@field output_function function Custom output function
+---@field _VERSION string Version
 local IceCream = {
    _VERSION = "0.5.3",
 }
