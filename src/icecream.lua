@@ -249,6 +249,12 @@ end
 ---@type {[string]: {[integer]: string}}
 local source_cache = setmetatable({}, { __mode = "kv" })
 
+-- Track the number of ic() calls per line
+local current_line_calls = setmetatable({}, { __mode = "k" })
+
+-- Cache parsed aliases per line
+local aliases_cache = setmetatable({}, { __mode = "k" })
+
 --- Read source code from file with caching.
 ---@param info table
 ---@return string
@@ -293,8 +299,14 @@ end
 
 --- Parse function call arguments to extract variable names.
 ---@param info table
----@return string[]?, integer
+---@return table?
 local function parse_aliases(info)
+   local cache_key = info.source .. ":" .. info.currentline
+   local cached = aliases_cache[cache_key]
+   if cached then
+      return cached
+   end
+
    local source = read_source(info)
    local linedefined = info.linedefined
    local relative_line = linedefined > 0 and info.currentline - linedefined + 1 or 1
@@ -303,43 +315,40 @@ local function parse_aliases(info)
 
    if err then
       IceCream.output_function("Failed to parse IceCream arguments: " .. err .. "\n")
-      return nil, 0
+      return nil
    end
 
-   local aliases
-   local call_count, argument_count = 0, 0
+   local calls = {}
+   local call_count = 0
 
    traverseTree(ast, function(node)
       if node.type ~= "call" or node.token.lineStart ~= relative_line then
          return
       end
 
-      call_count = call_count + 1
-
       local callee = node.callee
       local object = callee.object
       local name = object and object.name or callee.name
-      if name ~= "ic" and call_count > 1 then
-         return
-      end
-
-      local node_arguments = node.arguments
-      argument_count = #node_arguments
-      aliases = {}
-      for i = 1, argument_count do
-         local expr = node_arguments[i]
-         local expr_type = expr.type
-         if expr_type ~= "literal" and expr_type ~= "function" and expr_type ~= "table" then
-            aliases[i] = toLua(expr)
-         end
-      end
 
       if name == "ic" then
-         return "stop"
+         call_count = call_count + 1
+         local node_arguments = node.arguments
+         local aliases = {}
+
+         for i = 1, #node_arguments do
+            local expr = node_arguments[i]
+            local expr_type = expr.type
+            if expr_type ~= "literal" and expr_type ~= "function" and expr_type ~= "table" then
+               aliases[i] = toLua(expr)
+            end
+         end
+
+         calls[call_count] = aliases
       end
    end)
 
-   return aliases, argument_count
+   aliases_cache[cache_key] = calls
+   return calls
 end
 
 -------------------------------------------------------------------------------
@@ -348,7 +357,7 @@ end
 
 ---@vararg any
 ---@return string
-function IceCream:_format(level, ...)
+function IceCream:_format(level, call_number, ...)
    local info = debug_getinfo(level, "Sln")
    if info.namewhat == "[C]" then
       info = debug_getinfo(level + 1, "Sln")
@@ -386,9 +395,9 @@ function IceCream:_format(level, ...)
    local should_parse = has_parser and has_source
    local keys = {}
    if should_parse then
-      local ok, parsed_keys, parsed_count = pcall(parse_aliases, info)
-      if ok and parsed_keys and parsed_count == arg_count then
-         keys = parsed_keys
+      local ok, parsed_calls = pcall(parse_aliases, info)
+      if ok and parsed_calls and parsed_calls[call_number] then
+         keys = parsed_calls[call_number]
       end
    end
 
@@ -423,7 +432,8 @@ local FORMAT_LEVEL = (_VERSION == "Lua 5.1" and not jit) and 3 or 2
 ---@vararg any Argument(s) to format
 ---@return string
 function IceCream:format(...)
-   return self:_format(FORMAT_LEVEL, ...)
+   -- For format(), always use call_number 1 since it's used directly
+   return self:_format(FORMAT_LEVEL, 1, ...)
 end
 
 --- Quick print function for debugging purposes.
@@ -431,7 +441,13 @@ end
 ---@return ... The argument(s) passed to ic
 function IceCream:ic(...)
    if config.enabled then
-      local output = self:_format(3, ...)
+      -- Get or initialize call counter for this line
+      local info = debug.getinfo(2, "Sl")
+      local line_key = info.source .. ":" .. info.currentline
+      current_line_calls[line_key] = (current_line_calls[line_key] or 0) + 1
+      local call_number = current_line_calls[line_key]
+
+      local output = self:_format(3, call_number, ...)
       config.output_function(output .. "\n")
    end
    return ...

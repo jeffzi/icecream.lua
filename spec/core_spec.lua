@@ -31,7 +31,7 @@ describe("IceCream", function()
    it("ic()", function()
       local s = ic:format()
       assert.string_match(s:lower(), "stack traceback")
-      assert.string_match(s, "^ic| spec/core_spec%.lua:")
+      assert.string_match(s, HEADER)
    end)
 
    it("types", function()
@@ -133,13 +133,6 @@ describe("IceCream", function()
       assert.string_match(s, pattern)
    end)
 
-   it("ic alias", function()
-      local x = 42
-      local dbg = ic
-      local s = dbg:format(x)
-      assert.string_match(s, HEADER .. "x = 42$")
-   end)
-
    it("passthrough", function()
       local expected_i, expected_s, expected_t, expected_b, expected_n = 42, "hello", {}, false, nil
       local i, s, t, b, n = ic(expected_i, expected_s, expected_t, expected_b, expected_n)
@@ -239,7 +232,8 @@ describe("IceCream", function()
    end
 
    describe("parse error message", function()
-      local dumbParser, old_parse, fresh_ic, spy_output
+      -- luacheck: ignore 431
+      local dumbParser, old_parse, ic, spy_output
 
       setup(function()
          dumbParser = require("dumbParser")
@@ -248,13 +242,13 @@ describe("IceCream", function()
             return nil, "Mock parse error"
          end
 
-         fresh_ic = require_uncached("icecream")
-         fresh_ic.color = false
+         ic = require_uncached("icecream")
+         ic.color = false
 
          spy_output = spy.new(function(s)
             return s
          end)
-         fresh_ic.output_function = spy_output
+         ic.output_function = spy_output
       end)
 
       teardown(function()
@@ -262,12 +256,11 @@ describe("IceCream", function()
       end)
 
       it("should show parse error message", function()
-         local formatted = fresh_ic:format("test", 1 + 2)
+         local formatted = ic:format("test", 1 + 2)
          assert.string_match(formatted, 'spec/core_spec%.lua:%d+: "test", 3')
 
          assert.spy(spy_output).was.called(1)
          local err = spy_output.calls[1].refs[1]
-         print(err)
          assert.string_match(err, "^Failed to parse IceCream arguments: Mock parse error\n")
       end)
    end)
@@ -284,5 +277,74 @@ describe("IceCream", function()
 
       assert.is_true(success)
       assert.string_match(result, "^ic| 1, 3")
+   end)
+
+   describe("multiple calls per line", function()
+      it("should handle multiple direct calls", function()
+         local spy_output = spy.new(function() end)
+         ic.output_function = spy_output
+
+         local x, y = 1, 2
+         local a, b = ic(x), ic(y)
+
+         assert.spy(spy_output).was.called(2)
+         local first_call = spy_output.calls[1].refs[1]
+         local second_call = spy_output.calls[2].refs[1]
+         assert.string_match(first_call, HEADER .. "x = 1\n")
+         assert.string_match(second_call, HEADER .. "y = 2\n")
+         assert.are.equal(x, a)
+         assert.are.equal(y, b)
+      end)
+
+      it("should handle multiple calls in expression", function()
+         local spy_output = spy.new(function() end)
+         ic.output_function = spy_output
+
+         local function f(v)
+            return v
+         end
+         local x, y = 1, 2
+         local result = f(ic(x) == ic(y))
+
+         assert.spy(spy_output).was.called(2)
+         local first_call = spy_output.calls[1].refs[1]
+         local second_call = spy_output.calls[2].refs[1]
+         assert.string_match(first_call, HEADER .. "x = 1\n")
+         assert.string_match(second_call, HEADER .. "y = 2\n")
+         assert.is_false(result)
+      end)
+
+      it("should handle nested calls", function()
+         local spy_output = spy.new(function() end)
+         ic.output_function = spy_output
+
+         local x = ic(ic(1))
+         assert.spy(spy_output).was.called(2)
+         local outer_call = spy_output.calls[1].refs[1]
+         local inner_call = spy_output.calls[2].refs[1]
+         print(inner_call, outer_call)
+         assert.string_match(inner_call, HEADER .. "1\n")
+         assert.string_match(outer_call, HEADER .. "ic%(1%) = 1\n")
+         assert.are.equal(x, 1)
+      end)
+
+      it("should cache parsed results", function()
+         local spy_output = spy.new(function() end)
+         ic.output_function = spy_output
+
+         local line = "local x, y = ic(1), ic(2)"
+         local command = string.format(
+            [[NO_COLOR=1 lua -e 'local ic = require("src.icecream"); %s; %s']],
+            line,
+            line
+         )
+
+         local handle = io.popen(command .. " 2>&1")
+         local result = assert.is_not_nil(handle:read("*a"))
+         local success, _, _ = handle:close()
+
+         assert.is_true(success)
+         assert.string_match(result, "^ic| 1.*ic| 2.*ic| 1.*ic| 2")
+      end)
    end)
 end)
