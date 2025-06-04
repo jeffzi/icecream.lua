@@ -49,6 +49,7 @@ Ensure that optional dependencies are available for extra features:
 - **[ansicolors](https://github.com/kikito/ansicolors.lua):** Enabling colored output.
 - **[inspect](https://github.com/kikito/inspect.lua):** Pretty-printing tables.
 - **[luasystem](https://github.com/lunarmodules/luasystem):** Terminal width detection and consistent environment variable reading on Windows.
+- **[StackTracePlus](https://github.com/ignacio/StackTracePlus):** Enhanced stack traces when called without arguments.
 
 ## Usage
 
@@ -62,19 +63,28 @@ Ensure that optional dependencies are available for extra features:
 
 2. **Debugging with `ic()`:**
 
-   Use `ic()` as you would use `print()` for debugging:
+Use `ic()` as you would use `print()` for debugging:
 
-   ```lua
-    local ic = require("icecream")
+```lua
+local ic = require("icecream")
 
-    local foo = function()
-       local x = -42
-       ic(math.abs(x))
-    end
+local foo = function()
+   local x = -42
+   ic(math.abs(x)) -- Output: ic| readme.lua:5 <foo>: math.abs(x) = 42
 
-    foo()
-    -- Output: ic| readme.lua:5 <foo>: math.abs(x) = 42
-   ```
+   local function bar()
+      ic()
+   end
+
+   bar() -- Output: ic| readme.lua:8 <bar>: + stack trace
+end
+
+foo()
+
+if ic(1 == 1) then -- Output: ic| readme.lua:16: 1==1 = true + Return true
+   -- code
+end
+```
 
 <img src="basic_example.png" width="400">
 
@@ -89,37 +99,6 @@ Ensure that optional dependencies are available for extra features:
 - **Multi-lines:** The output wraps on new lines as needed.
 
 - **Stack traceback:** Use `ic()` without arguments to print the stack traceback.
-
-```lua
-local ic = require("icecream")
-
-local function foo()
-   ic()
-end
-
-foo()
--- Output:
--- ic| readme.lua:4 <foo>:
--- stack traceback:
--- 	    readme.lua:4: in function 'foo'
--- 	    readme.lua:7: in main chunk
--- 	    [C]: ?
-```
-
-IceCream supports [`StackTracePlus`](https://github.com/ignacio/StackTracePlus).
-With StackTracePlus, the previous snippet outputs:
-
-```
-ic| readme.lua:4 <foo>
-Stack Traceback
-===============
-(3) Lua local 'foo' at file 'readme.lua:4'
-	Local variables:
-	 x = number: 1
-	 y = number: 2
-(4) main chunk of file 'readme.lua' at line 7
-(5)  C function 'function: 0x600001aec0c0'
-```
 
 ## Returning the arguments
 
@@ -180,7 +159,7 @@ Activate or deactivate debugging output dynamically with `ic.enable()` and `ic.d
 
 IceCream relies on `debug.getinfo`, which provides partial information about function calls, resulting in some limitations:
 
-- **Naming Convention:** You **must** name the required module `ic`. Using a different name prevents introspection from working - you'll only see argument values without their expressions or variable names. For example:
+- **Naming Convention:** You **must** name the required module `ic`. Using a different name prevents introspection from working, you'll only see argument values without their expressions or variable names. For example:
 
   ```lua
   local dbg = require("icecream")

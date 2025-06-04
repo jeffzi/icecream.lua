@@ -3,15 +3,15 @@
 -- Licensed under the MIT License
 
 ---@class IceCream
----@field enabled boolean Enable or disable IceCream output
----@field color boolean Enable colorized output
----@field include_context boolean Include file name, line number, and function name in output
----@field prefix string Prefix string for debug output
----@field max_width integer? Maximum width before wrapping text
----@field indent string Indentation string for multi-line output
----@field traceback function? Custom traceback function, defaults to debug.traceback
----@field output_function function Custom output function
----@field _VERSION string Version
+---@field enabled boolean Enable or disable IceCream output globally. Can be toggled with enable() and disable()
+---@field color boolean Enable ANSI color codes in output. When true, different data types are highlighted in distinct colors
+---@field include_context boolean Include source information (file name, line number, function name) in output.
+---@field prefix string Prefix string added before each debug output line. Defaults to "ic|"
+---@field max_width integer? Maximum width in characters before wrapping output text. If nil, uses terminal width.
+---@field indent string Indentation string used for wrapped or multi-line output. Defaults to two spaces
+---@field traceback function? Custom traceback function to use when ic() is called without arguments. Defaults to debug.traceback or StackTracePlus if available
+---@field output_function function Function used to output debug information. Defaults to writing to stderr.
+---@field _VERSION string IceCream version number
 local IceCream = {
    _VERSION = "0.5.3",
 }
@@ -250,9 +250,11 @@ end
 local source_cache = setmetatable({}, { __mode = "kv" })
 
 -- Track the number of ic() calls per line
+---@type {[string]: integer}
 local current_line_calls = setmetatable({}, { __mode = "k" })
 
 -- Cache parsed aliases per line
+---@type {[string]: {[integer]: string[]}}
 local aliases_cache = setmetatable({}, { __mode = "k" })
 
 --- Read source code from file with caching.
@@ -298,8 +300,8 @@ local function read_source(info)
 end
 
 --- Parse function call arguments to extract variable names.
----@param info table
----@return table?
+---@param info table debug info table with source and line information
+---@return {[integer]: string[]}? table Mapping call number to an array of argument aliases
 local function parse_aliases(info)
    local cache_key = info.source .. ":" .. info.currentline
    local cached = aliases_cache[cache_key]
@@ -355,8 +357,11 @@ end
 -- Public API
 -------------------------------------------------------------------------------
 
----@vararg any
----@return string
+--- Internal function that formats the output for the icecream debug statement.
+--- @param level number Stack level for tracing the caller (2 for direct calls, 3 for ic() calls)
+--- @param call_number number Sequential number of ic() call on the current line (for handling multiple calls)
+--- @param ... any Variable arguments to be formatted and displayed (supports all Lua types)
+--- @return string The fully formatted debug string including context, argument names, and pretty-printed values
 function IceCream:_format(level, call_number, ...)
    local info = debug_getinfo(level, "Sln")
    if info.namewhat == "[C]" then
@@ -428,17 +433,35 @@ end
 
 local FORMAT_LEVEL = (_VERSION == "Lua 5.1" and not jit) and 3 or 2
 
---- Format arguments for debugging purposes.
----@vararg any Argument(s) to format
----@return string
+--- Format arguments for debugging without printing.
+---
+--- Example:
+--- ```lua
+--- local ic = require("icecream")
+--- local dbg_info = ic:format(my_table, my_function, "test")
+--- ```
+---@param ... any Values to debug print.
+---@return string Formatted
 function IceCream:format(...)
    -- For format(), always use call_number 1 since it's used directly
    return self:_format(FORMAT_LEVEL, 1, ...)
 end
 
---- Quick print function for debugging purposes.
----@vararg any Argument(s) to print
----@return ... The argument(s) passed to ic
+--- Enhanced debug function that pretty-prints variable names and values with syntax highlighting.
+--- Shows call stack when called without arguments. Returns all arguments unchanged for use in expressions.
+---
+--- Example:
+--- ```lua
+--- local ic = require("icecream")
+--- local t = { x = 1, y = 2 }
+--- local result = ic(t, 42, "test") -- Prints ic| test.lua:3: t = { x = 1, y = 2 }, 42, "test"
+--- if ic(t.x == 1) then
+---    -- code
+--- end
+--- ic() -- Prints ic| test.lua:7: + stacktrace
+--- ```
+---@param ... any Values to debug print.
+---@return ... The argument(s) passed to ic, allowing ic() to be used in expressions
 function IceCream:ic(...)
    if config.enabled then
       -- Get or initialize call counter for this line
@@ -453,7 +476,8 @@ function IceCream:ic(...)
    return ...
 end
 
---- Enable IceCream debugging output, if environment variable NO_ICECREAM is not set.
+--- Enable IceCream debugging output.
+--- Has no effect if the NO_ICECREAM environment variable is set.
 function IceCream:enable()
    if not is_env_set("NO_ICECREAM") then
       config.enabled = true
@@ -461,11 +485,12 @@ function IceCream:enable()
 end
 
 --- Disable IceCream debugging output.
+--- When disabled, ic() calls will silently return their arguments without printing anything.
 function IceCream:disable()
    config.enabled = false
 end
 
---- Export ic function to global namespace.
+--- Make ic() available globally without requiring explicit import.
 function IceCream:export()
    _G.ic = self
 end

@@ -7,4 +7,7 @@ include_files = {
    ".luacheckrc",
 }
 
-ignore = { "212/self" } -- unused argument self
+ignore = {
+   "212/self",  -- unused argument self
+   "631",       -- line too long
+}
