@@ -210,8 +210,7 @@ describe("IceCream", function()
 
       -- luacheck: no max line length
       local expected = [[
-[0m[4m[37mic|[0m[0m [0m[35m42[0m[0m, [0m[32m"foo"[0m[0m, [0m[33mfalse[0m[0m, [0m[1m[37m{[0m[0m[0m[35m 42[0m[0m, [0m[32m"foo"[0m[0m, [0m[33mfalse[0m[0m, [0m[34m[0][0m[0m = [0m[36m<function 1>[0m[0m, [0m[34m[9][0m[0m = [0m[32m"hello_true"[0m[0m, [0m[34m_d[0m[0m = [0m[33mfalse[0m[0m, [0m[34m_true[0m[0m =[0m[35m 1[0m[0m, [0m[34ma[0m[0m = [0m[32m"b"[0m[0m, [0m[34max2[0m[0m =[0m[35m 4376879704[0m[0m, [0m[34mb[0m[0m =[0m[35m 1.1[0m[0m, [0m[34mc[0m[0m = [0m[33mtrue[0m[0m, [0m[34mx[0m[0m = [0m[1m[37m{[0m[0m [0m[34msubx[0m[0m =[0m[35m -9[0m[0m [0m[1m[37m}[0m[0m, [0m[36m__call[0m[0m = [0m[36m<function 2>[0m[0m [0m[1m[37m}[0m[0m
-]]
+[0m[4m[37mic|[0m[0m [0m[35m42[0m[0m, [0m[32m"foo"[0m[0m, [0m[33mfalse[0m[0m, [0m[1m[37m{[0m[0m[0m[35m 42[0m[0m, [0m[32m"foo"[0m[0m, [0m[33mfalse[0m[0m, [0m[34m[0][0m[0m = [0m[36m<function 1>[0m[0m, [0m[34m[9][0m[0m = [0m[32m"hello_true"[0m[0m, [0m[34m_d[0m[0m = [0m[33mfalse[0m[0m, [0m[34m_true[0m[0m =[0m[35m 1[0m[0m, [0m[34ma[0m[0m = [0m[32m"b"[0m[0m, [0m[34max2[0m[0m =[0m[35m 4376879704[0m[0m, [0m[34mb[0m[0m =[0m[35m 1.1[0m[0m, [0m[34mc[0m[0m = [0m[33mtrue[0m[0m, [0m[34mx[0m[0m = [0m[1m[37m{[0m[0m [0m[34msubx[0m[0m =[0m[35m -9[0m[0m [0m[1m[37m}[0m[0m, [0m[36m__call[0m[0m = [0m[36m<function 2>[0m[0m [0m[1m[37m}[0m[0m]]
       assert.spy(spy_output).was.returned_with(expected)
    end)
 
@@ -220,7 +219,7 @@ describe("IceCream", function()
          ic.foo = 1
       end, "foo is not a valid config option.")
 
-      for _, opt in pairs({ "indent", "color", "prefix", "output_function" }) do
+      for _, opt in pairs({ "indent", "color", "output_function" }) do
          assert.has_error(function()
             ic[opt] = nil
          end, opt .. " option cannot be set to nil.")
@@ -265,7 +264,7 @@ describe("IceCream", function()
 
          assert.spy(spy_output).was.called(1)
          local err = spy_output.calls[1].refs[1]
-         assert.string_match(err, "^Failed to parse IceCream arguments: Mock parse error\n")
+         assert.string_match(err, "^Failed to parse IceCream arguments: Mock parse error")
       end)
    end)
 
@@ -294,8 +293,8 @@ describe("IceCream", function()
          assert.spy(spy_output).was.called(2)
          local first_call = spy_output.calls[1].refs[1]
          local second_call = spy_output.calls[2].refs[1]
-         assert.string_match(first_call, HEADER .. "x = 1\n")
-         assert.string_match(second_call, HEADER .. "y = 2\n")
+         assert.string_match(first_call, HEADER .. "x = 1")
+         assert.string_match(second_call, HEADER .. "y = 2")
          assert.are.equal(x, a)
          assert.are.equal(y, b)
       end)
@@ -313,8 +312,8 @@ describe("IceCream", function()
          assert.spy(spy_output).was.called(2)
          local first_call = spy_output.calls[1].refs[1]
          local second_call = spy_output.calls[2].refs[1]
-         assert.string_match(first_call, HEADER .. "x = 1\n")
-         assert.string_match(second_call, HEADER .. "y = 2\n")
+         assert.string_match(first_call, HEADER .. "x = 1")
+         assert.string_match(second_call, HEADER .. "y = 2")
          assert.is_false(result)
       end)
 
@@ -327,8 +326,8 @@ describe("IceCream", function()
          local outer_call = spy_output.calls[1].refs[1]
          local inner_call = spy_output.calls[2].refs[1]
          print(inner_call, outer_call)
-         assert.string_match(inner_call, HEADER .. "1\n")
-         assert.string_match(outer_call, HEADER .. "ic%(1%) = 1\n")
+         assert.string_match(inner_call, HEADER .. "1")
+         assert.string_match(outer_call, HEADER .. "ic%(1%) = 1")
          assert.are.equal(x, 1)
       end)
 

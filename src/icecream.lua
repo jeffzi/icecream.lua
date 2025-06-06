@@ -49,7 +49,7 @@ local config = {
    traceback = traceback,
    max_width = 80,
    output_function = function(s)
-      io_stderr:write(s)
+      io_stderr:write(s .. "\n")
    end,
 }
 
@@ -316,7 +316,7 @@ local function parse_aliases(info)
    local ast, err = parse(source)
 
    if err then
-      IceCream.output_function("Failed to parse IceCream arguments: " .. err .. "\n")
+      IceCream.output_function("Failed to parse IceCream arguments: " .. err)
       return nil
    end
 
@@ -471,7 +471,7 @@ function IceCream:ic(...)
       local call_number = current_line_calls[line_key]
 
       local output = self:_format(3, call_number, ...)
-      config.output_function(output .. "\n")
+      config.output_function(output)
    end
    return ...
 end
