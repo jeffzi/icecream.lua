@@ -6,7 +6,7 @@
 ---@field enabled boolean Enable or disable IceCream output globally. Can be toggled with enable() and disable()
 ---@field color boolean Enable ANSI color codes in output. When true, different data types are highlighted in distinct colors
 ---@field include_context boolean Include source information (file name, line number, function name) in output.
----@field prefix string Prefix string added before each debug output line. Defaults to "ic|"
+---@field prefix string? Prefix string added before each debug output line. Defaults to "ic|"
 ---@field max_width integer? Maximum width in characters before wrapping output text. If nil, uses terminal width.
 ---@field indent string Indentation string used for wrapped or multi-line output. Defaults to two spaces
 ---@field traceback function? Custom traceback function to use when ic() is called without arguments. Defaults to debug.traceback or StackTracePlus if available
@@ -368,7 +368,7 @@ function IceCream:_format(level, call_number, ...)
       info = debug_getinfo(level + 1, "Sln")
    end
 
-   local prefix = config.prefix
+   local prefix = config.prefix or ""
    local short_src = info.short_src
    local has_source = short_src ~= "stdin" and short_src ~= "(command line)"
 
@@ -498,7 +498,7 @@ end
 local mt = {
    __index = config,
    __newindex = function(_, k, v)
-      if k ~= "max_width" and k ~= "traceback" then
+      if k ~= "max_width" and k ~= "traceback" and k ~= "prefix" then
          if config[k] == nil then
             error(k .. " is not a valid config option.")
          end

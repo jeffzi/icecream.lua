@@ -148,6 +148,10 @@ describe("IceCream", function()
       ic.prefix = new_prefix
       local s = ic:format("hello")
       assert.string_match(s, "^" .. new_prefix .. ' spec/core_spec%.lua:%d+: "hello"')
+
+      ic.prefix = nil
+      s = ic:format("hello")
+      assert.string_match(s, '^spec/core_spec%.lua:%d+: "hello"')
    end)
 
    it("ic.traceback", function()
