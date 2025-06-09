@@ -7,8 +7,9 @@
 ---@field color boolean Enable ANSI color codes in output. When true, different data types are highlighted in distinct colors
 ---@field include_context boolean Include source information (file name, line number, function name) in output.
 ---@field prefix string? Prefix string added before each debug output line. Defaults to "ic|"
----@field max_width integer? Maximum width in characters before wrapping output text. If nil, uses terminal width.
----@field indent string Indentation string used for wrapped or multi-line output. Defaults to two spaces
+---@field max_width integer? Maximum width before wrapping output text. If nil, uses terminal width.
+---@field indent string Indentation string for wrapped or multi-line output. Defaults to two spaces
+---@field mtime_interval number? Hot reload check interval in seconds. When set, checks file modification times to invalidate cache. Defaults to nil (disabled)
 ---@field traceback function? Custom traceback function to use when ic() is called without arguments. Defaults to debug.traceback or StackTracePlus if available
 ---@field output_function function Function used to output debug information. Defaults to writing to stderr.
 ---@field _VERSION string IceCream version number
@@ -17,11 +18,11 @@ local IceCream = {
 }
 
 local debug_getinfo = debug.getinfo
-local io_stderr = io.stderr
+local io_open, io_stderr = io.open, io.stderr
 local math_huge = math.huge
-local string_gsub = string.gsub
-local string_match = string.match
-local table_concat = table.concat
+local os_time = os.time
+local string_gsub, string_match, string_sub = string.gsub, string.match, string.sub
+local table_concat, table_insert = table.concat, table.insert
 local pcall, setmetatable, select, type, tostring = pcall, setmetatable, select, type, tostring
 
 local has_parser, parser = pcall(require, "dumbParser")
@@ -29,6 +30,9 @@ local toLua, parse, traverseTree
 if has_parser then
    toLua, parse, traverseTree = parser.toLua, parser.parse, parser.traverseTree
 end
+
+local has_lfs, lfs = pcall(require, "lfs")
+local lfs_attributes = has_lfs and lfs.attributes
 
 local has_stack_trace_plus, stp = pcall(require, "StackTracePlus")
 local traceback = has_stack_trace_plus and stp.stacktrace or debug.traceback
@@ -48,8 +52,9 @@ local config = {
    prefix = "ic|",
    traceback = traceback,
    max_width = 80,
+   mtime_interval = nil,
    output_function = function(s)
-      io_stderr:write(s .. "\n")
+      io_stderr:write(s, "\n")
    end,
 }
 
@@ -246,85 +251,143 @@ end
 -- Parse source
 -------------------------------------------------------------------------------
 
----@type {[string]: {[integer]: string}}
+--- ```
+--- source_cache[filename] = {
+---    parsed_functions = {
+---       [function_start_line] = {
+---          [relative_line] = aliases  -- First ic() call's aliases only
+---       }
+---    },
+---    mtime = timestamp,
+---    last_checked = timestamp
+--- }
+--- ```
+---@class FileData
+---@field parsed_functions {[integer]: {[integer]: string[]}} Function line -> relative line -> aliases
+---@field mtime number? Last known modification time
+---@field last_checked number? Last time we checked for modifications
+
+---@type {[string]: FileData}
 local source_cache = setmetatable({}, { __mode = "kv" })
 
--- Track the number of ic() calls per line
----@type {[string]: integer}
-local current_line_calls = setmetatable({}, { __mode = "k" })
+--- Get file modification time.
+---@param filename string
+---@return number?
+local function get_mtime(filename)
+   if not lfs_attributes then
+      return nil
+   end
+   local ok, mtime = pcall(lfs_attributes, filename, "modification")
+   return ok and type(mtime) == "number" and mtime or nil
+end
 
--- Cache parsed aliases per line
----@type {[string]: {[integer]: string[]}}
-local aliases_cache = setmetatable({}, { __mode = "k" })
+---@param filename string
+---@param start_line integer
+---@param end_line integer
+---@return string|nil, string|nil
+local function read_source(filename, start_line, end_line)
+   local file, err = io_open(filename, "r")
+   if not file then
+      return nil, err
+   end
 
---- Read source code from file with caching.
----@param info table
----@return string
-local function read_source(info)
+   local lines = {}
+   local line_num = 0
+
+   for line in file:lines() do
+      line_num = line_num + 1
+      if line_num >= start_line and line_num <= end_line then
+         table_insert(lines, line)
+      elseif line_num > end_line then
+         break
+      end
+   end
+
+   file:close()
+   return table_concat(lines, "\n")
+end
+
+--- Create a new empty cache entry for a file
+---@param filename string
+---@return FileData
+local function new_file_data(filename)
+   local file_data = {
+      parsed_functions = {},
+      mtime = get_mtime(filename),
+      last_checked = os_time(),
+   }
+   source_cache[filename] = file_data
+   return file_data
+end
+
+--- Check if file needs invalidation due to modification
+---@param filename string
+---@param file_data FileData
+---@return boolean is_modified
+local function check_file_modification(filename, file_data)
+   if not config.mtime_interval or not has_lfs then
+      return false
+   end
+
+   local current_time = os_time()
+   if current_time - file_data.last_checked < config.mtime_interval then
+      return false
+   end
+
+   file_data.last_checked = current_time
+   local new_mtime = get_mtime(filename)
+   local old_mtime = file_data.mtime
+
+   -- Handle nil mtimes (deleted/missing files)
+   if new_mtime ~= old_mtime then
+      file_data.mtime = new_mtime
+      return true
+   end
+
+   return false
+end
+
+--- Parse function call arguments to extract variable names.
+--- NOTE: Only the first ic() call on each line will have accurate variable names.
+---@param info table debug info table with source and line information
+---@param file_data FileData
+---@return string[]? Argument aliases for the first ic() call on this line
+---@return number? multi_lineo Location of the error if multiple calls to ic on the same line
+local function parse_aliases(info, file_data)
    local filename = info.source:sub(2)
    if filename == "(tail call)" then
       error("Cannot use IceCream as a return value")
    end
 
+   local current_line = info.currentline
    local start_line = info.linedefined
+   local relative_line = start_line > 0 and current_line - start_line + 1 or 1
    local end_line = info.lastlinedefined
-
    if start_line == 0 then
-      start_line = info.currentline
+      start_line = current_line
       end_line = math_huge
    end
 
-   local cached_file = source_cache[filename]
-   if cached_file then
-      local cached_function = cached_file[start_line]
-      if cached_function then
-         return cached_function
-      end
-   else
-      cached_file = {}
-      source_cache[filename] = cached_file
+   local function_data = file_data.parsed_functions[start_line]
+   if function_data then
+      return function_data[relative_line]
    end
 
-   local lines = {}
-   local i = 0
-   for line in io.lines(filename) do
-      i = i + 1
-      if i >= start_line and i <= end_line then
-         lines[#lines + 1] = line
-      end
-   end
-
-   local source = table_concat(lines, "\n")
-   cached_file[start_line] = source
-   return source
-end
-
---- Parse function call arguments to extract variable names.
----@param info table debug info table with source and line information
----@return {[integer]: string[]}? table Mapping call number to an array of argument aliases
-local function parse_aliases(info)
-   local cache_key = info.source .. ":" .. info.currentline
-   local cached = aliases_cache[cache_key]
-   if cached then
-      return cached
-   end
-
-   local source = read_source(info)
-   local linedefined = info.linedefined
-   local relative_line = linedefined > 0 and info.currentline - linedefined + 1 or 1
-
-   local ast, err = parse(source)
-
-   if err then
-      IceCream.output_function("Failed to parse IceCream arguments: " .. err)
+   local source = read_source(filename, start_line, end_line)
+   if source == "" then
       return nil
    end
 
-   local calls = {}
-   local call_count = 0
+   local ast, err = parse(source)
+   if err then
+      config.output_function("Failed to parse IceCream arguments: " .. err)
+      return nil
+   end
 
+   local lines = {}
+   local multi_lineo
    traverseTree(ast, function(node)
-      if node.type ~= "call" or node.token.lineStart ~= relative_line then
+      if node.type ~= "call" then
          return
       end
 
@@ -333,24 +396,29 @@ local function parse_aliases(info)
       local name = object and object.name or callee.name
 
       if name == "ic" then
-         call_count = call_count + 1
-         local node_arguments = node.arguments
-         local aliases = {}
-
-         for i = 1, #node_arguments do
-            local expr = node_arguments[i]
-            local expr_type = expr.type
-            if expr_type ~= "literal" and expr_type ~= "function" and expr_type ~= "table" then
-               aliases[i] = toLua(expr)
+         local lineno = node.token.lineStart
+         -- Only store the first ic() call on each line
+         -- since we cannot determine which ic() call is the current one.
+         if not lines[lineno] then
+            local aliases = {}
+            local node_args = node.arguments
+            for i = 1, #node_args do
+               local expr = node_args[i]
+               local expr_type = expr.type
+               if expr_type ~= "literal" and expr_type ~= "function" and expr_type ~= "table" then
+                  aliases[i] = toLua(expr)
+               end
             end
+            lines[lineno] = aliases
+         else
+            multi_lineo = start_line + lineno - 1
+            return "stop"
          end
-
-         calls[call_count] = aliases
       end
    end)
 
-   aliases_cache[cache_key] = calls
-   return calls
+   file_data.parsed_functions[start_line] = lines
+   return lines[relative_line], multi_lineo
 end
 
 -------------------------------------------------------------------------------
@@ -359,10 +427,9 @@ end
 
 --- Internal function that formats the output for the icecream debug statement.
 --- @param level number Stack level for tracing the caller (2 for direct calls, 3 for ic() calls)
---- @param call_number number Sequential number of ic() call on the current line (for handling multiple calls)
 --- @param ... any Variable arguments to be formatted and displayed (supports all Lua types)
 --- @return string The fully formatted debug string including context, argument names, and pretty-printed values
-function IceCream:_format(level, call_number, ...)
+function IceCream:_format(level, ...)
    local info = debug_getinfo(level, "Sln")
    if info.namewhat == "[C]" then
       info = debug_getinfo(level + 1, "Sln")
@@ -397,12 +464,25 @@ function IceCream:_format(level, call_number, ...)
       return header
    end
 
-   local should_parse = has_parser and has_source
    local keys = {}
-   if should_parse then
-      local ok, parsed_calls = pcall(parse_aliases, info)
-      if ok and parsed_calls and parsed_calls[call_number] then
-         keys = parsed_calls[call_number]
+   if has_parser and has_source then
+      local filename = string_sub(info.source, 2)
+      local file_data = source_cache[filename]
+      if not file_data then
+         file_data = new_file_data(filename)
+      elseif check_file_modification(filename, file_data) then
+         file_data = new_file_data(filename)
+      end
+
+      local ok, aliases, multi_lineo = pcall(parse_aliases, info, file_data)
+      if multi_lineo then
+         error(
+            string.format("Found multiple IceCream calls at line %d in %s", multi_lineo, short_src),
+            level
+         )
+      end
+      if ok and aliases then
+         keys = aliases
       end
    end
 
@@ -443,12 +523,14 @@ local FORMAT_LEVEL = (_VERSION == "Lua 5.1" and not jit) and 3 or 2
 ---@param ... any Values to debug print.
 ---@return string Formatted
 function IceCream:format(...)
-   -- For format(), always use call_number 1 since it's used directly
-   return self:_format(FORMAT_LEVEL, 1, ...)
+   return self:_format(FORMAT_LEVEL, ...)
 end
 
 --- Enhanced debug function that pretty-prints variable names and values with syntax highlighting.
 --- Shows call stack when called without arguments. Returns all arguments unchanged for use in expressions.
+---
+--- NOTE: Multiple ic() calls on the same line will only show variable names for the first call.
+--- For accurate variable names, place each ic() call on its own line.
 ---
 --- Example:
 --- ```lua
@@ -464,16 +546,19 @@ end
 ---@return ... The argument(s) passed to ic, allowing ic() to be used in expressions
 function IceCream:ic(...)
    if config.enabled then
-      -- Get or initialize call counter for this line
-      local info = debug.getinfo(2, "Sl")
-      local line_key = info.source .. ":" .. info.currentline
-      current_line_calls[line_key] = (current_line_calls[line_key] or 0) + 1
-      local call_number = current_line_calls[line_key]
-
-      local output = self:_format(3, call_number, ...)
-      config.output_function(output)
+      config.output_function(self:_format(3, ...))
    end
    return ...
+end
+
+--- Clear all cached data, optionally for a specific file
+---@param filename? string If provided, only clear cache for this file
+function IceCream:clear_cache(filename)
+   if filename then
+      source_cache[filename] = nil
+   else
+      source_cache = setmetatable({}, { __mode = "kv" })
+   end
 end
 
 --- Enable IceCream debugging output.
@@ -495,17 +580,27 @@ function IceCream:export()
    _G.ic = self
 end
 
+local NULLABLE_OPTIONS = {
+   max_width = true,
+   traceback = true,
+   prefix = true,
+   mtime_interval = true,
+}
+
+local POSITIVE_OPTIONS = {
+   max_width = true,
+   mtime_interval = true,
+}
+
 local mt = {
    __index = config,
    __newindex = function(_, k, v)
-      if k ~= "max_width" and k ~= "traceback" and k ~= "prefix" then
-         if config[k] == nil then
-            error(k .. " is not a valid config option.")
-         end
+      if v == nil and not NULLABLE_OPTIONS[k] then
+         error(k .. " option cannot be set to nil.")
+      end
 
-         if v == nil then
-            error(k .. " option cannot be set to nil.")
-         end
+      if v ~= nil and POSITIVE_OPTIONS[k] and (type(v) ~= "number" or v <= 0) then
+         error(k .. " must be a number greater than 0 or nil.")
       end
 
       config[k] = v

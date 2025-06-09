@@ -171,6 +171,14 @@ IceCream relies on `debug.getinfo`, which provides partial information about fun
   tostring(dbg({ hello = "world" }))
   ```
 
+- **Single Call Limitation:** `ic` only supports one `ic:format()` or `ic()` per line of code.
+
+  ```lua
+    local ic = require("icecream")
+
+    assert(ic(1) == ic(2, 3))-- Error: lua: readme.lua:3: Found multiple IceCream calls at line 3 in readme.lua
+  ```
+
 - **Return Value Restriction:** _Lua 5.1_ does not support using `ic:format()` or `ic()` directly as return values from functions.
 
   ```lua

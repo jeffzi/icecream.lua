@@ -215,10 +215,6 @@ describe("IceCream", function()
    end)
 
    it("wrong option", function()
-      assert.has_error(function()
-         ic.foo = 1
-      end, "foo is not a valid config option.")
-
       for _, opt in pairs({ "indent", "color", "output_function" }) do
          assert.has_error(function()
             ic[opt] = nil
@@ -283,71 +279,27 @@ describe("IceCream", function()
    end)
 
    describe("multiple calls per line", function()
-      it("should handle multiple direct calls", function()
-         local spy_output = spy.new(function() end)
-         ic.output_function = spy_output
-
-         local x, y = 1, 2
-         local a, b = ic(x), ic(y)
-
-         assert.spy(spy_output).was.called(2)
-         local first_call = spy_output.calls[1].refs[1]
-         local second_call = spy_output.calls[2].refs[1]
-         assert.string_match(first_call, HEADER .. "x = 1")
-         assert.string_match(second_call, HEADER .. "y = 2")
-         assert.are.equal(x, a)
-         assert.are.equal(y, b)
+      it("should error when called multiple times at module level", function()
+         local ok, err = pcall(function()
+            local x, y = 1, 1
+            local cond = ic(x) == ic(y)
+            return cond
+         end)
+         assert.is_false(ok)
+         assert.string_match(err, "Found multiple IceCream calls at line %d+ in spec/core_spec.lua")
       end)
 
-      it("should handle multiple calls in expression", function()
-         local spy_output = spy.new(function() end)
-         ic.output_function = spy_output
-
-         local function f(v)
-            return v
-         end
-         local x, y = 1, 2
-         local result = f(ic(x) == ic(y))
-
-         assert.spy(spy_output).was.called(2)
-         local first_call = spy_output.calls[1].refs[1]
-         local second_call = spy_output.calls[2].refs[1]
-         assert.string_match(first_call, HEADER .. "x = 1")
-         assert.string_match(second_call, HEADER .. "y = 2")
-         assert.is_false(result)
-      end)
-
-      it("should handle nested calls", function()
-         local spy_output = spy.new(function() end)
-         ic.output_function = spy_output
-
-         local x = ic(ic(1))
-         assert.spy(spy_output).was.called(2)
-         local outer_call = spy_output.calls[1].refs[1]
-         local inner_call = spy_output.calls[2].refs[1]
-         print(inner_call, outer_call)
-         assert.string_match(inner_call, HEADER .. "1")
-         assert.string_match(outer_call, HEADER .. "ic%(1%) = 1")
-         assert.are.equal(x, 1)
-      end)
-
-      it("should cache parsed results", function()
-         local spy_output = spy.new(function() end)
-         ic.output_function = spy_output
-
-         local line = "local x, y = ic(1), ic(2)"
-         local command = string.format(
-            [[NO_COLOR=1 lua -e 'local ic = require("src.icecream"); %s; %s']],
-            line,
-            line
-         )
-
-         local handle = io.popen(command .. " 2>&1")
-         local result = assert.is_not_nil(handle:read("*a"))
-         local success, _, _ = handle:close()
-
-         assert.is_true(success)
-         assert.string_match(result, "^ic| 1.*ic| 2.*ic| 1.*ic| 2")
+      it("should error when called multiple times inside a function", function()
+         local ok, err = pcall(function()
+            local function foo()
+               local x, y = 1, 1
+               local cond = ic(x) == ic(y)
+               return cond
+            end
+            foo()
+         end)
+         assert.is_false(ok)
+         assert.string_match(err, "Found multiple IceCream calls at line %d+ in spec/core_spec.lua")
       end)
    end)
 end)
